@@ -96,7 +96,9 @@ class LocalDB {
         const colRef = collection(db, "colleges");
         const newCollege = {
             name: insertCollege.name,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            superAdminUsername: insertCollege.superAdminUsername,
+            superAdminPassword: insertCollege.superAdminPassword
         };
         const docRef = await addDoc(colRef, newCollege);
         
@@ -139,6 +141,24 @@ class LocalDB {
     // === AUTH ===
     async login(creds) {
         // creds: { collegeId, username, password }
+        const college = await this.getCollege(creds.collegeId);
+        if (!college) {
+            throw new Error("College not found");
+        }
+        const directMatch =
+            (creds.username === college.name && creds.password === college.superAdminPassword) ||
+            (creds.username === college.superAdminUsername && creds.password === college.superAdminPassword);
+        if (directMatch) {
+            const user = {
+                id: `superadmin-${college.id}`,
+                collegeId: college.id,
+                username: college.superAdminUsername,
+                role: "superadmin",
+                passwordHash: college.superAdminPassword,
+                createdAt: new Date().toISOString()
+            };
+            return { user, college, redirectUrl: "/superadmin/dashboard" };
+        }
         const usersRef = collection(db, "users");
         const q = query(
             usersRef, 
@@ -159,12 +179,7 @@ class LocalDB {
         }
 
         const user = { id: userDoc.id, ...userDoc.data() };
-        const college = await this.getCollege(creds.collegeId);
-
-        if (!college) {
-             throw new Error("College not found");
-        }
-
+ 
         let redirectUrl = "/";
         if (user.role === "superadmin") redirectUrl = "/superadmin/dashboard";
         if (user.role === "admin") redirectUrl = "/admin/dashboard";

@@ -22,7 +22,7 @@ export default function Home() {
             toast({ title: "Missing fields", description: "Please fill in all fields", variant: "destructive" });
             return;
         }
-        login({ collegeId: parseInt(collegeId), username, password }, {
+        login({ collegeId: collegeId, username, password }, {
             onError: (err) => {
                 toast({ title: "Login failed", description: err.message, variant: "destructive" });
             }
