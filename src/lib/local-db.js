@@ -472,5 +472,6 @@ class LocalDB {
 }
 
 export const localDB = new LocalDB();
-// Trigger seed (it checks if empty internally)
-localDB.seed();
+// Seed only if explicitly called or needed for dev (Disabled for live production to rely on Firestore data)
+// localDB.seed();
+
