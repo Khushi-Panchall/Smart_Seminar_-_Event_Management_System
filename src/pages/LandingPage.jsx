@@ -21,9 +21,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold">
-              SS
-            </div>
+            <img src="/logo-icon.png" alt="SSEMS" className="w-10 h-10 object-contain" />
             <span className="font-bold text-xl">SSEMS</span>
           </div>
           <div className="flex gap-4">
@@ -43,12 +41,9 @@ export default function LandingPage() {
           <div className="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-6">
             🚀 Smart Event Management
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 text-slate-900">
-            SSEMS
-          </h1>
-          <h2 className="text-2xl md:text-3xl font-semibold text-blue-600 mb-6">
-            Smart Seminar & Event Management System
-          </h2>
+          <div className="flex justify-center mb-8">
+            <img src="/logo-full.png" alt="SSEMS - Smart Seminar & Event Management System" className="h-auto max-w-[600px] w-full" />
+          </div>
           <p className="text-lg text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
             A Secure, QR-Based Seminar & Event Management Platform for Colleges. Streamline registrations, automate seating, and track attendance in real-time.
           </p>
