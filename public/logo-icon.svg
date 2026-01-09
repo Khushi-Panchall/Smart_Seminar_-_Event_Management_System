@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f766e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Graduation Cap -->
+  <path d="M256 32L32 128l224 96 224-96L256 32z" fill="#1e3a8a"/>
+  <path d="M448 128v96c0 17.7-14.3 32-32 32s-32-14.3-32-32v-68.6l-128 54.9v85c0 48.4-114.6 48.4-114.6 0v-85L32 128" fill="none"/>
+  <!-- Tassel -->
+  <path d="M416 128v64c0 8.8 7.2 16 16 16s16-7.2 16-16v-64" stroke="#14b8a6" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Shield Shape -->
+  <path d="M64 192v128c0 106 86 192 192 192s192-86 192-192V192L256 277.3 64 192z" fill="none" stroke="url(#grad1)" stroke-width="24" stroke-linejoin="round"/>
+  
+  <!-- QR Code Pattern Elements inside Shield -->
+  <g fill="#14b8a6">
+    <!-- Top Left -->
+    <rect x="120" y="240" width="60" height="60" rx="8" />
+    <rect x="135" y="255" width="30" height="30" fill="white"/>
+    <rect x="145" y="265" width="10" height="10" fill="#14b8a6"/>
+    
+    <!-- Top Right -->
+    <rect x="332" y="240" width="60" height="60" rx="8" />
+    <rect x="347" y="255" width="30" height="30" fill="white"/>
+    <rect x="357" y="265" width="10" height="10" fill="#14b8a6"/>
+    
+    <!-- Bottom Left -->
+    <rect x="120" y="350" width="60" height="60" rx="8" />
+    <rect x="135" y="365" width="30" height="30" fill="white"/>
+    <rect x="145" y="375" width="10" height="10" fill="#14b8a6"/>
+    
+    <!-- Random bits -->
+    <rect x="230" y="240" width="52" height="52" rx="4" fill="#1e3a8a"/>
+    <rect x="230" y="310" width="20" height="20" rx="2" />
+    <rect x="262" y="310" width="20" height="20" rx="2" />
+    <rect x="332" y="350" width="20" height="60" rx="4" fill="#1e3a8a"/>
+    <rect x="372" y="350" width="20" height="20" rx="2" />
+    <rect x="230" y="350" width="52" height="20" rx="4" />
+    <rect x="262" y="390" width="20" height="20" rx="2" fill="#1e3a8a"/>
+  </g>
+  
+  <!-- Checkmark overlay representing "Success" or "Registered" -->
+  <path d="M200 320l40 40 80-80" stroke="#1e3a8a" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.9"/>
+</svg>

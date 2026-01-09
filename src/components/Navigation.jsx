@@ -15,7 +15,7 @@ export function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href={dashboardPath} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-             <img src="/logo-icon.png" alt="SSEMS" className="h-10 w-10 object-contain" />
+             <img src="/logo-icon.svg" alt="SSEMS" className="h-10 w-10 object-contain" />
              <span className="font-display font-bold text-lg hidden md:block">
                {college.name}
              </span>
