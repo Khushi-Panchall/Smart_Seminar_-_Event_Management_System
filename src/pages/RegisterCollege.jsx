@@ -24,7 +24,7 @@ export default function RegisterCollege() {
         createCollege(formData, {
             onSuccess: () => {
                 toast({ title: "Success", description: "College registered successfully! Please login." });
-                setLocation("/");
+                setLocation("/login");
             },
             onError: (err) => {
                 toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -33,7 +33,7 @@ export default function RegisterCollege() {
     };
     return (<div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-lg space-y-6">
-        <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/login" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1"/> Back to Login
         </Link>
         

@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
-export default function Home() {
+export default function LoginPage() {
     const [collegeId, setCollegeId] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");

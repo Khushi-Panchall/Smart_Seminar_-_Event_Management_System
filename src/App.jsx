@@ -4,7 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import Home from "@/pages/Home";
+import LandingPage from "@/pages/LandingPage";
+import LoginPage from "@/pages/LoginPage";
 import RegisterCollege from "@/pages/RegisterCollege";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -14,7 +15,8 @@ import StudentRegisterPage from "@/pages/StudentRegisterPage";
 import SeatSelectionPage from "@/pages/SeatSelectionPage";
 function Router() {
     return (<Switch>
-      <Route path="/" component={Home}/>
+      <Route path="/" component={LandingPage}/>
+      <Route path="/login" component={LoginPage}/>
       <Route path="/register" component={RegisterCollege}/>
       
       {/* Role Protected Routes (handled by navigation logic inside pages) */}
