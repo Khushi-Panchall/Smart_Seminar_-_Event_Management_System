@@ -78,6 +78,7 @@ export default function SeatSelectionPage() {
                         body: JSON.stringify({
                             studentName: studentData.studentName,
                             email: studentData.email,
+                            phone: studentData.phone,
                             seminarName: seminar.title,
                             date: formattedDate,
                             time: seminar.time,

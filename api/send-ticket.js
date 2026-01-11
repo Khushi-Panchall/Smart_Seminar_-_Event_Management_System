@@ -24,6 +24,7 @@ export default async function handler(req, res) {
     const { 
         studentName, 
         email, 
+        phone,
         seminarName, 
         date, 
         time, 
@@ -79,18 +80,21 @@ export default async function handler(req, res) {
         addField("Attendee Name", studentName, col1X, startY);
         addField("Seat Number", seatNumber, col2X, startY);
 
-        addField("Date", date, col1X, startY + 60);
-        addField("Time", time, col2X, startY + 60);
+        addField("Email", email, col1X, startY + 60);
+        addField("Phone", phone || "N/A", col2X, startY + 60);
 
-        addField("Venue", venue || hallName, col1X, startY + 120);
+        addField("Date", date, col1X, startY + 120);
+        addField("Time", time, col2X, startY + 120);
+
+        addField("Venue", venue || hallName, col1X, startY + 180);
         if (collegeName) {
-            addField("Institution", collegeName, col2X, startY + 120);
+            addField("Institution", collegeName, col2X, startY + 180);
         }
 
-        addField("Ticket ID", ticketId, col1X, startY + 180);
+        addField("Ticket ID", ticketId, col1X, startY + 240);
 
         // QR Code Box
-        const qrY = startY + 230;
+        const qrY = startY + 290;
         const qrBoxX = (595 - 200) / 2; // Center
         
         // QR Image
