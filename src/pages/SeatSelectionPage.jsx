@@ -61,10 +61,43 @@ export default function SeatSelectionPage() {
             course: studentData.course,
             semester: studentData.semester,
         }, {
-            onSuccess: (data) => {
+            onSuccess: async (data) => {
                 setTicketData(data);
                 setStep("success");
                 toast({ title: "Registration Successful", description: "Your seat has been booked!" });
+
+                // Send Email with Ticket
+                try {
+                    const formattedDate = new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    const seatLabel = `${getRowLabel(selectedSeat.row)}-${selectedSeat.col}`;
+                    
+                    // Non-blocking fetch (fire and forget-ish, but we catch errors)
+                    fetch('/api/send-ticket', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            studentName: studentData.studentName,
+                            email: studentData.email,
+                            seminarName: seminar.title,
+                            date: formattedDate,
+                            time: seminar.time,
+                            venue: seminar.venue,
+                            seatNumber: seatLabel,
+                            ticketId: data.uniqueId,
+                            collegeName: studentData.collegeName
+                        })
+                    }).then(res => {
+                        if (!res.ok) throw new Error('Email API failed');
+                        toast({ title: "Email Sent", description: `Ticket sent to ${studentData.email}` });
+                    }).catch(err => {
+                        console.error("Failed to send email:", err);
+                        // We silently fail or log, as registration is already successful
+                    });
+
+                } catch (e) {
+                    console.error("Email logic error:", e);
+                }
+
                 // Clear temp data
                 localStorage.removeItem(`registration_${slug}`);
             },
