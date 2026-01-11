@@ -21,6 +21,11 @@ export default function StudentRegisterPage() {
     });
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        if (formData.phone.length !== 10) {
+            return; // Form validation should handle this, but double check
+        }
+
         // In a real app, you might save this to local storage or a "draft" API endpoint.
         // For now, we'll pass it via state/query params or just expect the user to re-enter
         // (since the prompt says "Temporarily store student data", we'll use localStorage)
@@ -83,12 +88,26 @@ export default function StudentRegisterPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Phone Number <span className="text-red-500">*</span></Label>
-                  <Input type="tel" value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} required placeholder="+91 98765 43210"/>
+                  <Input 
+                    type="tel" 
+                    value={formData.phone} 
+                    onChange={e => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setFormData(p => ({ ...p, phone: value }));
+                    }} 
+                    required 
+                    placeholder="9876543210"
+                    pattern="[0-9]{10}"
+                    title="Please enter exactly 10 digits"
+                  />
+                  {formData.phone && formData.phone.length !== 10 && (
+                    <p className="text-xs text-red-500">Phone number must be exactly 10 digits.</p>
+                  )}
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={formData.phone.length !== 10}>
                 Next: Select Seat <ArrowRight className="w-4 h-4 ml-2"/>
               </Button>
             </CardFooter>

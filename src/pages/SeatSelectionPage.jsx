@@ -9,6 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, CheckCircle, ArrowLeft } from "lucide-react";
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
+
+const loadImage = (src) => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+};
+
 export default function SeatSelectionPage() {
     const [match, params] = useRoute("/:slug/seats");
     const slug = params?.slug || "";
@@ -67,36 +77,104 @@ export default function SeatSelectionPage() {
         });
     };
     const downloadTicket = async () => {
-        if (!ticketData || !seminar || !studentData)
-            return;
+        if (!ticketData || !seminar || !studentData) return;
+
         const doc = new jsPDF();
-        const qrUrl = await QRCode.toDataURL(ticketData.uniqueId);
-        // Header
-        doc.setFillColor(63, 81, 181); // Primary color
-        doc.rect(0, 0, 210, 40, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
-        doc.text("Seminar Entry Ticket", 105, 25, { align: "center" });
-        // Details
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(16);
-        doc.text(seminar.title, 20, 60);
-        doc.setFontSize(12);
-        doc.text(`Date: ${new Date(seminar.date).toDateString()}`, 20, 75);
-        doc.text(`Time: ${seminar.time}`, 20, 85);
-        doc.text(`Venue: ${seminar.venue}`, 20, 95);
-        doc.setFontSize(14);
-        doc.text(`Attendee: ${studentData.studentName}`, 20, 115);
-        if (studentData.collegeName) {
-            doc.text(`College: ${studentData.collegeName}`, 20, 125);
+        const qrUrl = await QRCode.toDataURL(ticketData.uniqueId, { width: 200, margin: 1 });
+        
+        // Brand Colors
+        const primaryColor = [30, 58, 138]; // Blue-900
+        
+        // Load Logo (Try to load, fallback if fails)
+        let logoImg = null;
+        try {
+            logoImg = await loadImage('/logo-full.png');
+        } catch (e) {
+            console.error("Logo load failed", e);
         }
-        doc.text(`Seat: ${getRowLabel(selectedSeat?.row)}-${selectedSeat?.col}`, 20, 135);
-        doc.text(`Ticket ID: ${ticketData.uniqueId}`, 20, 145);
-        // QR Code
-        doc.addImage(qrUrl, 'PNG', 75, 160, 60, 60);
+
+        // --- PDF Generation ---
+        
+        // Header Background
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, 210, 40, 'F');
+        
+        // Logo
+        if (logoImg) {
+             doc.addImage(logoImg, 'PNG', 15, 10, 40, 0); // width 40, auto height
+        } else {
+             doc.setTextColor(255, 255, 255);
+             doc.setFontSize(20);
+             doc.setFont("helvetica", "bold");
+             doc.text("SSEMS", 20, 28);
+        }
+
+        // Title
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text("Event Ticket", 190, 26, { align: "right" });
+
+        // Event Name (Large)
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(22);
+        doc.setFont("helvetica", "bold");
+        doc.text(seminar.title, 105, 60, { align: "center", maxWidth: 180 });
+
+        // Separator
+        doc.setDrawColor(200, 200, 200);
+        doc.line(20, 70, 190, 70);
+
+        // Details Grid
+        doc.setFontSize(12);
+        
+        const startY = 85;
+        const col1X = 25;
+        const col2X = 110;
+
+        // Label Helper
+        const addField = (label, value, x, y) => {
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(100, 100, 100);
+            doc.text(label, x, y);
+            
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(0, 0, 0);
+            doc.text(String(value), x, y + 6);
+        };
+
+        addField("Attendee Name", studentData.studentName, col1X, startY);
+        addField("Seat Number", `${getRowLabel(selectedSeat?.row)}-${selectedSeat?.col}`, col2X, startY);
+
+        addField("Date", new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), col1X, startY + 20);
+        addField("Time", seminar.time, col2X, startY + 20);
+
+        addField("Venue", seminar.venue, col1X, startY + 40);
+        if (studentData.collegeName) {
+            addField("Institution", studentData.collegeName, col2X, startY + 40);
+        }
+
+        addField("Ticket ID", ticketData.uniqueId, col1X, startY + 60);
+
+        // QR Code Box
+        const qrY = startY + 80;
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(65, qrY, 80, 90, 3, 3, 'F');
+        
+        doc.addImage(qrUrl, 'PNG', 75, qrY + 5, 60, 60);
+        
         doc.setFontSize(10);
-        doc.text("Show this QR code at the entrance", 105, 230, { align: "center" });
-        doc.save(`Ticket-${studentData.studentName}.pdf`);
+        doc.setTextColor(100, 100, 100);
+        doc.text("Scan this QR code at the entrance", 105, qrY + 75, { align: "center" });
+
+        // Footer
+        const footerY = 280;
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Generated on ${new Date().toLocaleString()}`, 105, footerY, { align: "center" });
+        doc.text("Smart Seminar & Event Management System", 105, footerY + 5, { align: "center" });
+
+        doc.save(`Ticket-${studentData.studentName.replace(/\s+/g, '_')}.pdf`);
     };
     if (seminarLoading || (seminar && regsLoading)) {
         return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin"/></div>;
