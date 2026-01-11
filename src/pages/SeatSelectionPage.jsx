@@ -6,18 +6,9 @@ import { SeatingGrid, getRowLabel } from "@/components/SeatingGrid";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, CheckCircle, ArrowLeft } from "lucide-react";
-import jsPDF from "jspdf";
+import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
 import QRCode from "qrcode";
-
-const loadImage = (src) => {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = src;
-    });
-};
+import emailjs from "@emailjs/browser";
 
 export default function SeatSelectionPage() {
     const [match, params] = useRoute("/:slug/seats");
@@ -32,6 +23,7 @@ export default function SeatSelectionPage() {
     const [ticketData, setTicketData] = useState(null);
     const [step, setStep] = useState("seat");
     const [studentData, setStudentData] = useState(null);
+
     useEffect(() => {
         const savedData = localStorage.getItem(`registration_${slug}`);
         if (savedData) {
@@ -42,14 +34,17 @@ export default function SeatSelectionPage() {
             // For now, let's assume they might need to go back.
         }
     }, [slug]);
+
     const handleSeatSelect = (row, col) => {
         setSelectedSeat({ row, col });
     };
+
     const handleRegister = () => {
         if (!selectedSeat || !seminar || !studentData) {
             toast({ title: "Error", description: "Missing information. Please restart registration.", variant: "destructive" });
             return;
         }
+
         register({
             seminarId: seminar.id,
             seatRow: selectedSeat.row,
@@ -64,39 +59,38 @@ export default function SeatSelectionPage() {
             onSuccess: async (data) => {
                 setTicketData(data);
                 setStep("success");
-                toast({ title: "Registration Successful", description: "Your seat has been booked!" });
-
-                // Send Email with Ticket
+                
+                // Generate QR and Send Email
                 try {
                     const formattedDate = new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                     const seatLabel = `${getRowLabel(selectedSeat.row)}-${selectedSeat.col}`;
                     
-                    // Non-blocking fetch (fire and forget-ish, but we catch errors)
-                    fetch('/api/send-ticket', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            studentName: studentData.studentName,
-                            email: studentData.email,
-                            phone: studentData.phone,
-                            seminarName: seminar.title,
-                            date: formattedDate,
-                            time: seminar.time,
-                            venue: seminar.venue,
-                            seatNumber: seatLabel,
-                            ticketId: data.uniqueId,
-                            collegeName: studentData.collegeName
-                        })
-                    }).then(res => {
-                        if (!res.ok) throw new Error('Email API failed');
-                        toast({ title: "Email Sent", description: `Ticket sent to ${studentData.email}` });
-                    }).catch(err => {
-                        console.error("Failed to send email:", err);
-                        // We silently fail or log, as registration is already successful
-                    });
+                    // Generate QR Code as Data URL
+                    const qrUrl = await QRCode.toDataURL(data.uniqueId, { width: 300, margin: 1 });
+
+                    const templateParams = {
+                        student_name: studentData.studentName,
+                        student_email: studentData.email,
+                        seminar_name: seminar.title,
+                        seminar_date: formattedDate,
+                        hall_name: seminar.venue,
+                        seat_number: seatLabel,
+                        ticket_id: data.uniqueId,
+                        qr_code_url: qrUrl
+                    };
+
+                    await emailjs.send(
+                        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+                        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+                        templateParams,
+                        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+                    );
+
+                    toast({ title: "Registration Successful", description: `Ticket sent to ${studentData.email}` });
 
                 } catch (e) {
-                    console.error("Email logic error:", e);
+                    console.error("Email/QR logic error:", e);
+                    toast({ title: "Registration Successful", description: "Seat booked, but email sending failed. Please check your email later or contact support." });
                 }
 
                 // Clear temp data
@@ -110,106 +104,7 @@ export default function SeatSelectionPage() {
             }
         });
     };
-    const downloadTicket = async () => {
-        if (!ticketData || !seminar || !studentData) return;
 
-        const doc = new jsPDF();
-        const qrUrl = await QRCode.toDataURL(ticketData.uniqueId, { width: 200, margin: 1 });
-        
-        // Brand Colors
-        const primaryColor = [30, 58, 138]; // Blue-900
-        
-        // Load Logo (Try to load, fallback if fails)
-        let logoImg = null;
-        try {
-            logoImg = await loadImage('/logo-full.png');
-        } catch (e) {
-            console.error("Logo load failed", e);
-        }
-
-        // --- PDF Generation ---
-        
-        // Header Background
-        doc.setFillColor(...primaryColor);
-        doc.rect(0, 0, 210, 40, 'F');
-        
-        // Logo
-        if (logoImg) {
-             doc.addImage(logoImg, 'PNG', 15, 10, 40, 0); // width 40, auto height
-        } else {
-             doc.setTextColor(255, 255, 255);
-             doc.setFontSize(20);
-             doc.setFont("helvetica", "bold");
-             doc.text("SSEMS", 20, 28);
-        }
-
-        // Title
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(16);
-        doc.setFont("helvetica", "bold");
-        doc.text("Event Ticket", 190, 26, { align: "right" });
-
-        // Event Name (Large)
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(22);
-        doc.setFont("helvetica", "bold");
-        doc.text(seminar.title, 105, 60, { align: "center", maxWidth: 180 });
-
-        // Separator
-        doc.setDrawColor(200, 200, 200);
-        doc.line(20, 70, 190, 70);
-
-        // Details Grid
-        doc.setFontSize(12);
-        
-        const startY = 85;
-        const col1X = 25;
-        const col2X = 110;
-
-        // Label Helper
-        const addField = (label, value, x, y) => {
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(100, 100, 100);
-            doc.text(label, x, y);
-            
-            doc.setFont("helvetica", "normal");
-            doc.setTextColor(0, 0, 0);
-            doc.text(String(value), x, y + 6);
-        };
-
-        addField("Attendee Name", studentData.studentName, col1X, startY);
-        addField("Seat Number", `${getRowLabel(selectedSeat?.row)}-${selectedSeat?.col}`, col2X, startY);
-
-        addField("Date", new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), col1X, startY + 20);
-        addField("Time", seminar.time, col2X, startY + 20);
-
-        addField("Venue", seminar.venue, col1X, startY + 40);
-        if (studentData.collegeName) {
-            addField("Institution", studentData.collegeName, col2X, startY + 40);
-        }
-
-        addField("Ticket ID", ticketData.uniqueId, col1X, startY + 60);
-
-        // QR Code Box
-        const qrY = startY + 80;
-        doc.setFillColor(248, 250, 252);
-        doc.roundedRect(65, qrY, 80, 90, 3, 3, 'F');
-        
-        doc.addImage(qrUrl, 'PNG', 75, qrY + 5, 60, 60);
-        
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text("Scan this QR code at the entrance", 105, qrY + 75, { align: "center" });
-
-        // Footer
-        const footerY = 280;
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Generated on ${new Date().toLocaleString()}`, 105, footerY, { align: "center" });
-        doc.text("Smart Seminar & Event Management System", 105, footerY + 5, { align: "center" });
-
-        doc.save(`Ticket-${studentData.studentName.replace(/\s+/g, '_')}.pdf`);
-    };
     if (seminarLoading || (seminar && regsLoading)) {
         return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin"/></div>;
     }
@@ -221,6 +116,7 @@ export default function SeatSelectionPage() {
               <Button asChild><a href={`/${slug}/register`}>Go to Registration</a></Button>
           </div>);
     }
+
     return (<div className="min-h-screen bg-slate-50 py-6 sm:py-12 px-4">
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="text-center space-y-4">
@@ -252,7 +148,7 @@ export default function SeatSelectionPage() {
                     <a href={`/${slug}/register`}><ArrowLeft className="w-4 h-4 mr-2"/> Back to Details</a>
                 </Button>
                 <Button onClick={handleRegister} disabled={!selectedSeat || isPending} className="w-full sm:w-auto">
-                  {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : "Register & Download Ticket"}
+                  {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : "Register & Book"}
                 </Button>
             </CardFooter>
           </Card>)}
@@ -265,16 +161,16 @@ export default function SeatSelectionPage() {
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-green-800">Registration Confirmed!</h2>
                 <p className="text-green-700">Your seat has been successfully reserved.</p>
+                <p className="text-green-600 text-sm">A confirmation email with your ticket and QR code has been sent to <b>{studentData.email}</b>.</p>
               </div>
               
-              <Button size="lg" onClick={downloadTicket} className="bg-green-600 hover:bg-green-700">
-                <Download className="w-5 h-5 mr-2"/>
-                Download Ticket
-              </Button>
-              
               <p className="text-sm text-muted-foreground">
-                Please save your ticket and present the QR code at the venue.
+                Please present the QR code in your email at the venue entrance.
               </p>
+
+              <Button variant="outline" asChild className="mt-4">
+                 <a href="/">Return to Home</a>
+              </Button>
             </CardContent>
           </Card>)}
       </div>
