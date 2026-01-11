@@ -248,21 +248,38 @@ export default function AdminDashboard() {
                                 <div className="flex items-center gap-2">
                                     <Input 
                                         type="number" 
-                                        min={1} 
+                                        min={0} 
                                         max={26} 
                                         value={formData.rows} 
                                         onChange={(e) => {
-                                            const val = parseInt(e.target.value) || 0;
-                                            setFormData(p => ({ ...p, rows: Math.min(26, Math.max(1, val)) }));
+                                            const valStr = e.target.value;
+                                            // Handle empty input or clear
+                                            if (valStr === "") {
+                                                setFormData(p => ({ ...p, rows: 0 }));
+                                                setCustomRowConfigs([]);
+                                                return;
+                                            }
+                                            
+                                            const val = parseInt(valStr);
+                                            // Prevent invalid inputs
+                                            if (isNaN(val)) return;
+
+                                            // Clamp between 0 and 26
+                                            const newRows = Math.max(0, Math.min(26, val));
+                                            
+                                            setFormData(p => ({ ...p, rows: newRows }));
+                                            
                                             // Remove configs for rows that no longer exist
                                             setCustomRowConfigs(prev => prev.filter(c => 
-                                                c.label.charCodeAt(0) - 65 < val
+                                                c.label.charCodeAt(0) - 65 < newRows
                                             ));
                                         }} 
                                     />
-                                    <span className="text-sm text-muted-foreground whitespace-nowrap">
-                                        (A - {String.fromCharCode(64 + formData.rows)})
-                                    </span>
+                                    {formData.rows > 0 && (
+                                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                            (A - {String.fromCharCode(64 + formData.rows)})
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
