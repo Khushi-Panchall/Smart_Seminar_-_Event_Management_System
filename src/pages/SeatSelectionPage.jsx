@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
-import emailjs from "@emailjs/browser";
+import { sendRegistrationEmail } from "@/lib/email";
 
 export default function SeatSelectionPage() {
     const [match, params] = useRoute("/:slug/seats");
@@ -58,49 +58,33 @@ export default function SeatSelectionPage() {
             onSuccess: async (data) => {
                 setTicketData(data);
                 
-                // Generate QR and Send Email
-                try {
-                    const formattedDate = new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                    const seatLabel = `${getRowLabel(selectedSeat.row)}-${selectedSeat.col}`;
-                    
-                    // Generate QR Code URL using api.qrserver.com
-                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${data.uniqueId}`;
+                // Send Email
+                const formattedDate = new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const seatLabel = `${getRowLabel(selectedSeat.row)}-${selectedSeat.col}`;
 
-                    const templateParams = {
-                        student_name: studentData.studentName,
-                        student_email: studentData.email,
-                        phone_number: studentData.phone, // Added as requested
-                        seminar_name: seminar.title,
-                        seminar_date: formattedDate,
-                        hall_name: seminar.venue,
-                        seat_number: seatLabel,
-                        ticket_id: data.uniqueId,
-                        qr_code_url: qrUrl
-                    };
+                const emailSent = await sendRegistrationEmail({
+                    student_name: studentData.studentName,
+                    student_email: studentData.email,
+                    phone_number: studentData.phone,
+                    seminar_name: seminar.title,
+                    seminar_date: formattedDate,
+                    hall_name: seminar.venue,
+                    seat_number: seatLabel,
+                    ticket_id: data.uniqueId
+                });
 
-                    await emailjs.send(
-                        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-                        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-                        templateParams,
-                        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-                    );
-
-                    setStep("success");
+                if (emailSent) {
                     toast({ title: "Registration Successful", description: `Ticket sent to ${studentData.email}` });
-
-                } catch (e) {
-                    console.error("Email logic error:", e);
-                    // Still confirm booking but show warning
-                    setStep("success"); 
+                } else {
                     toast({ 
                         title: "Seat Booked", 
                         description: "Seat booked, but email delivery failed. Please contact support.", 
-                        variant: "warning" // Note: "warning" variant might not exist in standard shadcn toast, usually default or destructive. I'll use default with a clear message.
+                        // variant: "warning" is not standard in shadcn default toast, using a noticeable description or standard variant
                     });
-                    // Force a re-render or update state to indicate email failure if needed for UI, 
-                    // but for now, we just show the success screen with the toast warning.
                 }
 
+                setStep("success");
+                
                 // Clear temp data
                 localStorage.removeItem(`registration_${slug}`);
             },
