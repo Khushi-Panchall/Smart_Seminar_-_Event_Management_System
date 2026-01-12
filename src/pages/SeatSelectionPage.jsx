@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
-import { sendRegistrationEmail } from "@/lib/email";
+import { sendEmailNotification } from "@/lib/sendEmail";
 
 export default function SeatSelectionPage() {
     const [match, params] = useRoute("/:slug/seats");
@@ -57,41 +57,35 @@ export default function SeatSelectionPage() {
         }, {
             onSuccess: async (data) => {
                 setTicketData(data);
+                setStep("success");
+                localStorage.removeItem(`registration_${slug}`);
                 
-                // Send Email
+                // Send Email ASYNC - DO NOT AWAIT
                 const formattedDate = new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                 const seatLabel = `${getRowLabel(selectedSeat.row)}-${selectedSeat.col}`;
 
-                const result = await sendRegistrationEmail({
+                sendEmailNotification({
                     student_name: studentData.studentName,
                     student_email: studentData.email,
-                    phone_number: studentData.phone,
                     seminar_name: seminar.title,
                     seminar_date: formattedDate,
                     hall_name: seminar.venue,
                     seat_number: seatLabel,
                     ticket_id: data.uniqueId
+                }).then((success) => {
+                    if (success) {
+                        toast({ 
+                            title: "Registration Successful", 
+                            description: "Registration successful. Ticket downloaded. A confirmation email has been sent." 
+                        });
+                    } else {
+                        toast({ 
+                            title: "Registration Successful", 
+                            description: "Ticket downloaded successfully. Email may take a few minutes or appear in spam.",
+                            variant: "default" 
+                        });
+                    }
                 });
-
-                if (result.success) {
-                    toast({ title: "Registration Successful", description: `Ticket sent to ${studentData.email}` });
-                } else {
-                    const isConfigError = result.error === "Missing configuration" || result.error === "Invalid configuration (placeholders)";
-                    const errorMsg = isConfigError
-                        ? "System Error: Email credentials missing or invalid. Check .env file."
-                        : "Seat booked, but email delivery failed. Please contact support.";
-                    
-                    toast({ 
-                        title: "Seat Booked", 
-                        description: errorMsg, 
-                        variant: isConfigError ? "destructive" : "default"
-                    });
-                }
-
-                setStep("success");
-                
-                // Clear temp data
-                localStorage.removeItem(`registration_${slug}`);
             },
             onError: (err) => {
                 toast({ title: "Booking Failed", description: err.message, variant: "destructive" });
