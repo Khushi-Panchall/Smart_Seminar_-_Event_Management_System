@@ -1,7 +1,5 @@
-import emailjs from "@emailjs/browser";
-
 /**
- * Sends a registration confirmation email using EmailJS.
+ * Sends a registration confirmation email using the Vercel Serverless API.
  * 
  * @param {Object} params - The email parameters.
  * @param {string} params.student_name - Name of the student.
@@ -26,50 +24,41 @@ export const sendRegistrationEmail = async ({
   ticket_id
 }) => {
   try {
-    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    // In development (if not using 'vercel dev'), we can't hit /api easily without proxy.
+    // However, the requirement is for PRODUCTION reliability.
+    // We will attempt to fetch the API.
+    
+    // Note: If running locally with 'vite', /api/send-confirmation-email might 404 unless proxied or mocked.
+    // If you need local testing, use 'vercel dev' or mock this function.
+    
+    const response = await fetch('/api/send-confirmation-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        student_name,
+        email: student_email, // Map student_email to email for API
+        phone_number,
+        seminar_name,
+        seminar_date,
+        hall_name,
+        seat_number,
+        ticket_id
+      }),
+    });
 
-    if (!serviceId || !templateId || !publicKey) {
-      console.warn("EmailJS Environment Variables Missing. Simulating success for development.");
-      return { success: true, simulated: true };
-    }
+    const data = await response.json();
 
-    if (serviceId.includes("YOUR_") || templateId.includes("YOUR_") || publicKey.includes("YOUR_")) {
-        console.warn("EmailJS using placeholder credentials. Simulating success for development.");
-        return { success: true, simulated: true };
-    }
-
-    // Generate QR Code URL using api.qrserver.com
-    const qr_code_url = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${ticket_id}`;
-
-    const templateParams = {
-      student_name,
-      student_email,
-      phone_number,
-      seminar_name,
-      seminar_date,
-      hall_name,
-      seat_number,
-      ticket_id,
-      qr_code_url
-    };
-
-    const response = await emailjs.send(
-      serviceId,
-      templateId,
-      templateParams,
-      publicKey
-    );
-
-    if (response.status === 200) {
+    if (response.ok && data.success) {
       return { success: true };
     } else {
-      console.error("EmailJS Non-200 Response", response);
-      return { success: false, error: "Email provider rejected request" };
+      console.error("Email API Error", data);
+      return { success: false, error: data.error || "Failed to send email" };
     }
   } catch (error) {
-    console.error("EmailJS Error", error);
-    return { success: false, error: error.text || error.message || "Unknown error" };
+    console.error("Network/API Error", error);
+    // Return success: false but do NOT throw, so we don't block the UI flow
+    return { success: false, error: error.message || "Network error" };
   }
 };
