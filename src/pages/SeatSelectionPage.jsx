@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
-import { sendEmailNotification } from "@/lib/sendEmail";
 
 export default function SeatSelectionPage() {
     const [match, params] = useRoute("/:slug/seats");
@@ -60,32 +59,48 @@ export default function SeatSelectionPage() {
                 setStep("success");
                 localStorage.removeItem(`registration_${slug}`);
                 
-                // Send Email ASYNC - DO NOT AWAIT
+                // Send Email via Backend API
                 const formattedDate = new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                 const seatLabel = `${getRowLabel(selectedSeat.row)}-${selectedSeat.col}`;
 
-                sendEmailNotification({
-                    student_name: studentData.studentName,
-                    student_email: studentData.email,
-                    seminar_name: seminar.title,
-                    seminar_date: formattedDate,
-                    hall_name: seminar.venue,
-                    seat_number: seatLabel,
-                    ticket_id: data.uniqueId
-                }).then((success) => {
-                    if (success) {
+                fetch('/api/send-ticket', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_name: studentData.studentName,
+                        student_email: studentData.email,
+                        seminar_name: seminar.title,
+                        seminar_date: formattedDate,
+                        hall_name: seminar.venue,
+                        seat_number: seatLabel,
+                        ticket_id: data.uniqueId
+                    })
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
                         toast({ 
                             title: "Registration Successful", 
-                            description: "Registration successful. Ticket downloaded. A confirmation email has been sent." 
+                            description: "Ticket downloaded. Confirmation email with PDF sent!" 
                         });
                     } else {
+                        console.error("Email failed:", result.message);
                         toast({ 
                             title: "Registration Successful", 
-                            description: "Ticket downloaded successfully. Email may take a few minutes or appear in spam.",
-                            variant: "default" 
+                            description: "Ticket downloaded. Email delivery failed, please check spam or contact support.",
+                            variant: "default" // Not destructive because registration succeeded
                         });
                     }
+                })
+                .catch(err => {
+                    console.error("Email API error:", err);
+                    toast({ 
+                        title: "Registration Successful", 
+                        description: "Ticket downloaded. Email system is temporarily unavailable.",
+                        variant: "default" 
+                    });
                 });
+
             },
             onError: (err) => {
                 toast({ title: "Booking Failed", description: err.message, variant: "destructive" });
