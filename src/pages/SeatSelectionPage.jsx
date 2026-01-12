@@ -62,7 +62,7 @@ export default function SeatSelectionPage() {
                 const formattedDate = new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                 const seatLabel = `${getRowLabel(selectedSeat.row)}-${selectedSeat.col}`;
 
-                const emailSent = await sendRegistrationEmail({
+                const result = await sendRegistrationEmail({
                     student_name: studentData.studentName,
                     student_email: studentData.email,
                     phone_number: studentData.phone,
@@ -73,13 +73,17 @@ export default function SeatSelectionPage() {
                     ticket_id: data.uniqueId
                 });
 
-                if (emailSent) {
+                if (result.success) {
                     toast({ title: "Registration Successful", description: `Ticket sent to ${studentData.email}` });
                 } else {
+                    const errorMsg = result.error === "Missing configuration" 
+                        ? "System Error: Email credentials missing in Vercel settings."
+                        : "Seat booked, but email delivery failed. Please contact support.";
+                    
                     toast({ 
                         title: "Seat Booked", 
-                        description: "Seat booked, but email delivery failed. Please contact support.", 
-                        // variant: "warning" is not standard in shadcn default toast, using a noticeable description or standard variant
+                        description: errorMsg, 
+                        variant: result.error === "Missing configuration" ? "destructive" : "default"
                     });
                 }
 

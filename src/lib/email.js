@@ -13,7 +13,7 @@ import emailjs from "@emailjs/browser";
  * @param {string} params.seat_number - Seat number (e.g., "A-1").
  * @param {string} params.ticket_id - Unique ticket ID.
  * 
- * @returns {Promise<boolean>} - Returns true if email sent successfully, false otherwise.
+ * @returns {Promise<{success: boolean, error?: string}>} - Returns result object
  */
 export const sendRegistrationEmail = async ({
   student_name,
@@ -32,7 +32,7 @@ export const sendRegistrationEmail = async ({
 
     if (!serviceId || !templateId || !publicKey) {
       console.error("EmailJS Environment Variables Missing", { serviceId, templateId, publicKey });
-      return false;
+      return { success: false, error: "Missing configuration" };
     }
 
     // Generate QR Code URL using api.qrserver.com
@@ -58,13 +58,13 @@ export const sendRegistrationEmail = async ({
     );
 
     if (response.status === 200) {
-      return true;
+      return { success: true };
     } else {
       console.error("EmailJS Non-200 Response", response);
-      return false;
+      return { success: false, error: "Email provider rejected request" };
     }
   } catch (error) {
     console.error("EmailJS Error", error);
-    return false;
+    return { success: false, error: error.text || error.message || "Unknown error" };
   }
 };
