@@ -76,14 +76,15 @@ export default function SeatSelectionPage() {
                 if (result.success) {
                     toast({ title: "Registration Successful", description: `Ticket sent to ${studentData.email}` });
                 } else {
-                    const errorMsg = result.error === "Missing configuration" 
-                        ? "System Error: Email credentials missing in Vercel settings."
+                    const isConfigError = result.error === "Missing configuration" || result.error === "Invalid configuration (placeholders)";
+                    const errorMsg = isConfigError
+                        ? "System Error: Email credentials missing or invalid. Check .env file."
                         : "Seat booked, but email delivery failed. Please contact support.";
                     
                     toast({ 
                         title: "Seat Booked", 
                         description: errorMsg, 
-                        variant: result.error === "Missing configuration" ? "destructive" : "default"
+                        variant: isConfigError ? "destructive" : "default"
                     });
                 }
 
