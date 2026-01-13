@@ -26,11 +26,17 @@ export function useSeminarBySlug(slug) {
     return useQuery({
         queryKey: ["seminar-slug", slug],
         queryFn: async () => {
-            const seminar = await localDB.getSeminarBySlug(slug);
-            if (!seminar)
-                throw new Error("Seminar not found");
-            const registrations = await localDB.getRegistrations(seminar.collegeId, seminar.id);
-            return { ...seminar, registrations };
+            try {
+                const seminar = await localDB.getSeminarBySlug(slug);
+                if (!seminar)
+                    return null;
+                const registrations = await localDB.getRegistrations(seminar.collegeId, seminar.id);
+                return { ...seminar, registrations };
+            }
+            catch (error) {
+                console.error("Failed to load seminar by slug", { slug, error });
+                return null;
+            }
         },
         enabled: !!slug,
     });
