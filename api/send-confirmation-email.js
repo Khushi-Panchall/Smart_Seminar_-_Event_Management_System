@@ -101,7 +101,7 @@ export default async function handler(req, res) {
     `;
 
     const info = await transporter.sendMail({
-      from: `"SSEMS" <${emailUser}>`,
+      from: `"🎟️ Your Seminar Registration is Confirmed | SSEMS" <${emailUser}>`,
       to: email,
       subject: `🎟️ Your Seminar Registration is Confirmed | SSEMS`,
       html: htmlContent,

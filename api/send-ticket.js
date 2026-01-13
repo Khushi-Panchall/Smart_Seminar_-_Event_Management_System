@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
     // Send Email with the updated HTML template
     await transporter.sendMail({
-      from: `"SSEMS" <${process.env.EMAIL_USER}>`,
+      from: `"🎟️ Your Seminar Registration is Confirmed | SSEMS" <${process.env.EMAIL_USER}>`,
       to: student_email,
       subject: `🎟️ Your Seminar Registration is Confirmed | SSEMS`,
       html: `
