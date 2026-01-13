@@ -215,12 +215,17 @@ class LocalDB {
     }
 
     async getSeminarBySlug(slug) {
-        const cg = query(collectionGroup(db, "seminars"), where("slug", "==", slug), limit(1));
-        const cgSnap = await getDocs(cg);
-        if (!cgSnap.empty) {
-            const docSnap = cgSnap.docs[0];
-            return this._resolveSeminarLayout({ id: docSnap.id, ...docSnap.data() });
+        try {
+            const cg = query(collectionGroup(db, "seminars"), where("slug", "==", slug), limit(1));
+            const cgSnap = await getDocs(cg);
+            if (!cgSnap.empty) {
+                const docSnap = cgSnap.docs[0];
+                return this._resolveSeminarLayout({ id: docSnap.id, ...docSnap.data() });
+            }
+        } catch (err) {
+            console.warn("CollectionGroup query failed, falling back to top-level collection:", err);
         }
+
         // Fallback: legacy flat collection
         const flat = query(collection(db, "seminars"), where("slug", "==", slug), limit(1));
         const flatSnap = await getDocs(flat);
