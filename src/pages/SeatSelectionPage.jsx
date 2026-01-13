@@ -57,7 +57,7 @@ export default function SeatSelectionPage() {
             onSuccess: async (data) => {
                 setTicketData(data);
                 setStep("success");
-                localStorage.removeItem(`registration_${slug}`);
+                localStorage.removeItem(`registration_${collegeSlug}_${seminarSlug}`);
                 
                 // Send Email via Backend API
                 const formattedDate = new Date(seminar.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });

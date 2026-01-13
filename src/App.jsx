@@ -28,9 +28,9 @@ function Router() {
       <Route path="/:collegeSlug/guard/dashboard" component={GuardDashboard}/>
       
       {/* Public Student Routes */}
-      <Route path="/:slug" component={SeminarDetailsPage}/>
-      <Route path="/:slug/register" component={StudentRegisterPage}/>
-      <Route path="/:slug/seats" component={SeatSelectionPage}/>
+      <Route path="/:collegeSlug/:seminarSlug" component={SeminarDetailsPage}/>
+      <Route path="/:collegeSlug/:seminarSlug/register" component={StudentRegisterPage}/>
+      <Route path="/:collegeSlug/:seminarSlug/seats" component={SeatSelectionPage}/>
 
       <Route component={NotFound}/>
     </Switch>);

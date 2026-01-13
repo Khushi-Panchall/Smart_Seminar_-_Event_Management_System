@@ -13,7 +13,7 @@ export function useSeminar(collegeId, id) {
     return useQuery({
         queryKey: ["seminar", collegeId, id],
         queryFn: async () => {
-            const seminar = await localDB.getSeminar(id);
+            const seminar = await localDB.getSeminar(collegeId, id);
             if (!seminar)
                 throw new Error("Seminar not found");
             const registrations = await localDB.getRegistrations(collegeId, id);
@@ -22,23 +22,36 @@ export function useSeminar(collegeId, id) {
         enabled: !!collegeId && !!id,
     });
 }
-export function useSeminarBySlug(slug) {
+
+export function useSeminarByCollegeAndSlug(collegeSlug, slug) {
     return useQuery({
-        queryKey: ["seminar-slug", slug],
+        queryKey: ["seminar-slug", collegeSlug, slug],
         queryFn: async () => {
             try {
-                const seminar = await localDB.getSeminarBySlug(slug);
+                const seminar = await localDB.getSeminarByCollegeAndSlug(collegeSlug, slug);
                 if (!seminar)
                     return null;
                 const registrations = await localDB.getRegistrations(seminar.collegeId, seminar.id);
                 return { ...seminar, registrations };
             }
             catch (error) {
-                console.error("Failed to load seminar by slug", { slug, error });
+                console.error("Failed to load seminar by slug", { collegeSlug, slug, error });
                 return null;
             }
         },
-        enabled: !!slug,
+        enabled: !!collegeSlug && !!slug,
+    });
+}
+
+// Deprecated: Kept for temporary backward compatibility during migration
+export function useSeminarBySlug(slug) {
+     return useQuery({
+        queryKey: ["seminar-slug-legacy", slug],
+        queryFn: async () => {
+             // We can't support this reliably with strict isolation without collegeSlug
+             return null; 
+        },
+        enabled: false
     });
 }
 export function useCreateSeminar() {

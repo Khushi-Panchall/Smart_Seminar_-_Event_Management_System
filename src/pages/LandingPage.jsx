@@ -21,7 +21,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo-icon.svg" alt="SSEMS" className="w-10 h-10 object-contain" />
+            <img src="/logo-icon.png" alt="SSEMS" className="w-10 h-10 object-contain" />
             <span className="font-bold text-xl">SSEMS</span>
           </div>
           <div className="flex gap-4">

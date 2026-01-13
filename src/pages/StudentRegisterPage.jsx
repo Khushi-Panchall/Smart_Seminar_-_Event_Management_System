@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useSeminarBySlug } from "@/hooks/use-seminars";
+import { useSeminarByCollegeAndSlug } from "@/hooks/use-seminars";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Loader2, Calendar, MapPin, ArrowRight } from "lucide-react";
+
 export default function StudentRegisterPage() {
-    const [match, params] = useRoute("/:slug/register");
-    const slug = params?.slug || "";
-    const { data: seminar, isLoading } = useSeminarBySlug(slug);
+    const [match, params] = useRoute("/:collegeSlug/:seminarSlug/register");
+    const collegeSlug = params?.collegeSlug || "";
+    const seminarSlug = params?.seminarSlug || "";
+    const { data: seminar, isLoading } = useSeminarByCollegeAndSlug(collegeSlug, seminarSlug);
     const [, setLocation] = useLocation();
     const [formData, setFormData] = useState({
         collegeName: "",

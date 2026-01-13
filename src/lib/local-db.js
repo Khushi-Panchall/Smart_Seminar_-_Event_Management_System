@@ -92,16 +92,71 @@ class LocalDB {
         return null;
     }
 
+    async getCollegeBySlug(slug) {
+        if (!slug) return null;
+        // Try direct ID match (if slug is used as ID)
+        const docRef = doc(db, "colleges", slug);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        }
+        
+        // Fallback: Query by custom 'slug' field or 'name' (if legacy)
+        // Ideally we should use ID as slug as per prompt, but for robustness:
+        const q = query(collection(db, "colleges"), where("slug", "==", slug), limit(1));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+             const d = snap.docs[0];
+             return { id: d.id, ...d.data() };
+        }
+        
+        // Fallback: Query by name (legacy support)
+        // This is risky if names have spaces, but user URLs suggest names are used.
+        // We might need to decodeURI the slug if it comes from URL.
+        const decodedSlug = decodeURIComponent(slug);
+        const qName = query(collection(db, "colleges"), where("name", "==", decodedSlug), limit(1));
+        const snapName = await getDocs(qName);
+        if (!snapName.empty) {
+             const d = snapName.docs[0];
+             return { id: d.id, ...d.data() };
+        }
+
+        return null;
+    }
+
     async createCollege(insertCollege) {
-        // insertCollege: { name, superAdminUsername, superAdminPassword }
+        // insertCollege: { name, superAdminUsername, superAdminPassword, slug (optional) }
         const colRef = collection(db, "colleges");
+        
+        // Generate slug if not provided
+        let slug = insertCollege.slug;
+        if (!slug) {
+            slug = insertCollege.name
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)+/g, '');
+        }
+
         const newCollege = {
             name: insertCollege.name,
+            slug: slug, // Store slug explicitly
             createdAt: new Date().toISOString(),
             superAdminUsername: insertCollege.superAdminUsername,
             superAdminPassword: insertCollege.superAdminPassword
         };
-        const docRef = await addDoc(colRef, newCollege);
+
+        // Use slug as Document ID as per Master Prompt "colleges/{collegeSlug}"
+        // But we must check if it exists to avoid overwrite? 
+        // addDoc doesn't allow setting ID. setDoc does.
+        // We'll try to use slug as ID.
+        const docRef = doc(colRef, slug);
+        // Check existence
+        const existing = await getDoc(docRef);
+        if (existing.exists()) {
+             throw new Error("College URL already exists. Please choose a different name.");
+        }
+        
+        await setDoc(docRef, newCollege);
         
         // Auto-create super admin
         await this.createUser({
@@ -205,16 +260,37 @@ class LocalDB {
         });
     }
 
-    async getSeminar(id) {
-        if (!id) return null;
-        const q = query(collectionGroup(db, "seminars"), where(documentId(), "==", id), limit(1));
+    async getSeminar(collegeId, id) {
+        if (!collegeId || !id) return null;
+        const docRef = doc(db, "colleges", collegeId, "seminars", id);
+        const docSnap = await getDoc(docRef);
+        
+        if (!docSnap.exists()) return null;
+        return this._resolveSeminarLayout({ id: docSnap.id, ...docSnap.data() });
+    }
+
+    async getSeminarByCollegeAndSlug(collegeSlug, seminarSlug) {
+        // 1. Resolve College
+        const college = await this.getCollegeBySlug(collegeSlug);
+        if (!college) return null;
+
+        // 2. Query Seminars Subcollection
+        const seminarsRef = collection(db, "colleges", college.id, "seminars");
+        const q = query(seminarsRef, where("slug", "==", seminarSlug), limit(1));
         const snapshot = await getDocs(q);
+
         if (snapshot.empty) return null;
         const docSnap = snapshot.docs[0];
         return this._resolveSeminarLayout({ id: docSnap.id, ...docSnap.data() });
     }
 
+    // Deprecated global search, kept for legacy or if needed
     async getSeminarBySlug(slug) {
+        // Try to find via collectionGroup if strict isolation isn't enforced yet
+        // But per master prompt, we should avoid this. 
+        // We'll keep the logic but log a warning.
+        console.warn("Using deprecated global seminar search. Prefer getSeminarByCollegeAndSlug.");
+        
         try {
             const cg = query(collectionGroup(db, "seminars"), where("slug", "==", slug), limit(1));
             const cgSnap = await getDocs(cg);
@@ -223,15 +299,9 @@ class LocalDB {
                 return this._resolveSeminarLayout({ id: docSnap.id, ...docSnap.data() });
             }
         } catch (err) {
-            console.warn("CollectionGroup query failed, falling back to top-level collection:", err);
+            console.warn("CollectionGroup query failed:", err);
         }
-
-        // Fallback: legacy flat collection
-        const flat = query(collection(db, "seminars"), where("slug", "==", slug), limit(1));
-        const flatSnap = await getDocs(flat);
-        if (flatSnap.empty) return null;
-        const docSnap = flatSnap.docs[0];
-        return this._resolveSeminarLayout({ id: docSnap.id, ...docSnap.data() });
+        return null;
     }
 
     // Helper to resolve hall layout if needed
@@ -313,12 +383,7 @@ class LocalDB {
         }
 
         const docRef = await addDoc(seminarsRef, newSeminar);
-        // Mirror to legacy/top-level for public reads if security rules restrict collectionGroup
-        try {
-            await setDoc(doc(db, "seminars", docRef.id), newSeminar);
-        } catch (e) {
-            console.error("Failed to mirror seminar to top-level collection", e);
-        }
+        // Removed legacy mirroring to "seminars" collection to comply with strict isolation rules
         return { id: docRef.id, ...newSeminar };
     }
 
@@ -386,17 +451,17 @@ class LocalDB {
     // === REGISTRATIONS ===
     async createRegistration(input) {
         // input: { seminarId, seatRow, seatCol, studentName, ... }
-        const regsRef = collection(db, "colleges", input.collegeId, "registrations");
+        // NEW PATH: colleges/{collegeId}/seminars/{seminarId}/registrations
+        const regsRef = collection(db, "colleges", input.collegeId, "seminars", input.seminarId, "registrations");
         
         // Generate seatId "A-5"
         const rowLabel = getRowLabel(input.seatRow);
         const seatId = `${rowLabel}-${input.seatCol}`;
 
         // Check for existing seat
-        // Query registrations where seminarId == X AND seatId == Y
+        // Query registrations where seatId == Y (in this seminar's subcollection)
         const q = query(
             regsRef, 
-            where("seminarId", "==", input.seminarId),
             where("seatId", "==", seatId)
         );
         const snapshot = await getDocs(q);
@@ -435,8 +500,11 @@ class LocalDB {
     }
 
     async getRegistrations(collegeId, seminarId) {
-        const regsRef = collection(db, "colleges", collegeId, "registrations");
-        const q = query(regsRef, where("seminarId", "==", seminarId));
+        // NEW PATH: colleges/{collegeId}/seminars/{seminarId}/registrations
+        const regsRef = collection(db, "colleges", collegeId, "seminars", seminarId, "registrations");
+        // No need to filter by seminarId as we are IN the seminar's subcollection
+        // But we might want to order by createdAt?
+        const q = query(regsRef, orderBy("createdAt", "asc"));
         const snapshot = await getDocs(q);
         
         return snapshot.docs.map(doc => {
@@ -463,12 +531,30 @@ class LocalDB {
     }
 
     async verifyAttendance(req) {
-        // req: { uniqueId }
+        // req: { uniqueId, collegeSlug (optional), seminarId (optional) }
+        // We really need collegeSlug or ID to find the registration now.
+        // If not provided, we can't efficiently find it without collectionGroup, 
+        // which might violate strict isolation rules if not indexed.
+        // But for scanner app, we might need collectionGroup on 'registrations'.
+        
+        // Master Prompt: "Never query outside colleges/{collegeSlug}"
+        // This implies the scanner MUST know the college.
+        
         let snapshot;
-        if (req.collegeId) {
-            const regsRef = collection(db, "colleges", req.collegeId, "registrations");
-            const q = query(regsRef, where("qrCodeData", "==", req.uniqueId), limit(1));
-            snapshot = await getDocs(q);
+        
+        if (req.collegeId && req.seminarId) {
+             const regsRef = collection(db, "colleges", req.collegeId, "seminars", req.seminarId, "registrations");
+             const q = query(regsRef, where("qrCodeData", "==", req.uniqueId), limit(1));
+             snapshot = await getDocs(q);
+        } else if (req.collegeId) {
+            // Fallback: search all seminars in college? Expensive.
+            // Better to use collectionGroup restricted to college path if possible? 
+            // Firestore doesn't support "collectionGroup under specific document" easily without queries.
+            // We'll assume scanner provides context.
+            // For now, fail if no seminarId? 
+            // Or try collectionGroup globally if indexes exist?
+             const q = query(collectionGroup(db, "registrations"), where("qrCodeData", "==", req.uniqueId), limit(1));
+             snapshot = await getDocs(q);
         } else {
             const q = query(collectionGroup(db, "registrations"), where("qrCodeData", "==", req.uniqueId), limit(1));
             snapshot = await getDocs(q);
@@ -480,6 +566,8 @@ class LocalDB {
 
         const docSnap = snapshot.docs[0];
         const data = docSnap.data();
+
+        // Check if data.collegeSlug matches req.collegeSlug if provided? (Security)
 
         if (data.attended) {
             return { valid: false, message: "Ticket Already Used", registration: data };

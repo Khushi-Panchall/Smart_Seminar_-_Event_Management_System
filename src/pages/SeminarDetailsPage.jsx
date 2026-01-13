@@ -1,19 +1,24 @@
 import { useRoute } from "wouter";
-import { useSeminarBySlug } from "@/hooks/use-seminars";
+import { useSeminarByCollegeAndSlug } from "@/hooks/use-seminars";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, MapPin, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+
 export default function SeminarDetailsPage() {
-    const [match, params] = useRoute("/:slug");
-    const slug = params?.slug || "";
-    const { data: seminar, isLoading } = useSeminarBySlug(slug);
+    const [match, params] = useRoute("/:collegeSlug/:seminarSlug");
+    const collegeSlug = params?.collegeSlug || "";
+    const seminarSlug = params?.seminarSlug || "";
+    const { data: seminar, isLoading } = useSeminarByCollegeAndSlug(collegeSlug, seminarSlug);
+
     if (isLoading) {
         return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin"/></div>;
     }
     if (!seminar)
         return <div className="min-h-screen flex items-center justify-center">Seminar not found</div>;
-    const registerUrl = `${window.location.origin}/${seminar.slug}/register`;
+
+    const registerUrl = `${window.location.origin}/${collegeSlug}/${seminarSlug}/register`;
+    
     return (<div className="min-h-screen bg-slate-50 py-12 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
         
