@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
     const htmlContent = `
 <div style="text-align:center; margin-bottom:20px;">
-  <img src="https://ssems.qzz.io/logo-full.png" alt="SSEMS Logo" width="120" />
+  <img src="https://ssems.vercel.app/logo-full.png" alt="SSEMS Logo" width="120" />
 </div>
 
 <p>Dear ${student_name},</p>
