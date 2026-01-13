@@ -38,48 +38,52 @@ export default async function handler(req, res) {
     await transporter.sendMail({
       from: `"SSEMS Support" <${process.env.EMAIL_USER}>`,
       to: student_email,
-      subject: `Registration Confirmed: ${seminar_name}`,
+      subject: `🎟️ Your Seminar Registration is Confirmed | SSEMS`,
       html: `
-<p>Dear ${student_name},</p> 
- 
- <p> 
- Greetings from <b>Smart Seminar & Event Management System</b> 🎓 
- </p> 
- 
- <p> 
- Your registration for the seminar 
- "<b>${seminar_name}</b>" has been successfully confirmed. 
- </p> 
- 
- <p> 
- 📅 <b>Date:</b> ${seminar_date}<br> 
- 📍 <b>Venue:</b> ${hall_name}<br> 
- 💺 <b>Seat No:</b> ${seat_number}<br> 
- 🆔 <b>Ticket ID:</b> ${ticket_id} 
- </p> 
- 
- <p><b>Show this QR code at the entry gate:</b></p> 
- 
- <img 
-   src="${qr_code_url}" 
-   alt="Seminar Ticket QR" 
-   width="200" 
-   height="200" 
- /> 
- 
- <p> 
- Please keep this email safe and present the QR code at the venue entrance. 
- </p> 
- 
- <p> 
- We wish you a great learning experience! 
- </p> 
- 
- <p> 
- Best Regards,<br> 
- <b>Smart Seminar & Event Management System</b><br> 
- 📧 smartseminar123@gmail.com 
- </p> 
+<div style="text-align:center; margin-bottom:20px;">
+  <img src="https://ssems.qzz.io/logo-full.png" alt="SSEMS Logo" width="120" />
+</div>
+
+<p>Dear ${student_name},</p>
+
+<p>
+Greetings from <b>Smart Seminar & Event Management System</b> 🎓
+</p>
+
+<p>
+Your registration for the seminar
+"<b>${seminar_name}</b>" has been successfully confirmed.
+</p>
+
+<p>
+📅 <b>Date:</b> ${seminar_date}<br>
+📍 <b>Venue:</b> ${hall_name}<br>
+💺 <b>Seat No:</b> ${seat_number}<br>
+🆔 <b>Ticket ID:</b> ${ticket_id}
+</p>
+
+<p><b>Show this QR code at the entry gate:</b></p>
+
+<img
+  src="${qr_code_url}"
+  alt="Seminar Ticket QR"
+  width="200"
+  height="200"
+/>
+
+<p>
+Please keep this email safe and present the QR code at the venue entrance.
+</p>
+
+<p>
+We wish you a great learning experience!
+</p>
+
+<p>
+Best Regards,<br>
+<b>Smart Seminar & Event Management System</b><br>
+📧 support@ssems.qzz.io
+</p>
       `
     });
 
