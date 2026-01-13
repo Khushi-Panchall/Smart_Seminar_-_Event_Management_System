@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import path from 'path';
+import fs from 'fs';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -34,6 +36,9 @@ export default async function handler(req, res) {
       },
     });
 
+    const logoPath = path.join(process.cwd(), 'public', 'logo-full.png');
+    const logoContent = fs.readFileSync(logoPath);
+
     // Send Email with the updated HTML template
     await transporter.sendMail({
       from: `"SSEMS Support" <${process.env.EMAIL_USER}>`,
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
       subject: `🎟️ Your Seminar Registration is Confirmed | SSEMS`,
       html: `
 <div style="text-align:center; margin-bottom:20px;">
-  <img src="https://ssems.qzz.io/logo-full.png" alt="SSEMS Logo" width="120" />
+  <img src="cid:ssemslogo" alt="SSEMS Logo" width="120" />
 </div>
 
 <p>Dear ${student_name},</p>
@@ -84,7 +89,14 @@ Best Regards,<br>
 <b>Smart Seminar & Event Management System</b><br>
 📧 support@ssems.qzz.io
 </p>
-      `
+      `,
+      attachments: [
+        {
+          filename: 'logo.png',
+          content: logoContent,
+          cid: 'ssemslogo'
+        }
+      ]
     });
 
     return res.status(200).json({ success: true, message: 'Email sent successfully' });

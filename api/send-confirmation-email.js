@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import path from 'path';
+import fs from 'fs';
 
 export default async function handler(req, res) {
   // CORS configuration
@@ -55,10 +57,12 @@ export default async function handler(req, res) {
     });
 
     const qr_code_url = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${ticket_id}`;
+    const logoPath = path.join(process.cwd(), 'public', 'logo-full.png');
+    const logoContent = fs.readFileSync(logoPath);
 
     const htmlContent = `
 <div style="text-align:center; margin-bottom:20px;">
-  <img src="https://ssems.vercel.app/logo-full.png" alt="SSEMS Logo" width="120" />
+  <img src="cid:ssemslogo" alt="SSEMS Logo" width="120" />
 </div>
 
 <p>Dear ${student_name},</p>
@@ -108,6 +112,13 @@ Best Regards,<br>
       to: email,
       subject: `🎟️ Your Seminar Registration is Confirmed | SSEMS`,
       html: htmlContent,
+      attachments: [
+        {
+          filename: 'logo.png',
+          content: logoContent,
+          cid: 'ssemslogo'
+        }
+      ],
     });
 
     console.log('Message sent: %s', info.messageId);
