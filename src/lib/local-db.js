@@ -215,12 +215,17 @@ class LocalDB {
     }
 
     async getSeminarBySlug(slug) {
-        const q = query(collectionGroup(db, "seminars"), where("slug", "==", slug), limit(1));
-        const snapshot = await getDocs(q);
-        
-        if (snapshot.empty) return null;
-        const docSnap = snapshot.docs[0];
-        
+        const cg = query(collectionGroup(db, "seminars"), where("slug", "==", slug), limit(1));
+        const cgSnap = await getDocs(cg);
+        if (!cgSnap.empty) {
+            const docSnap = cgSnap.docs[0];
+            return this._resolveSeminarLayout({ id: docSnap.id, ...docSnap.data() });
+        }
+        // Fallback: legacy flat collection
+        const flat = query(collection(db, "seminars"), where("slug", "==", slug), limit(1));
+        const flatSnap = await getDocs(flat);
+        if (flatSnap.empty) return null;
+        const docSnap = flatSnap.docs[0];
         return this._resolveSeminarLayout({ id: docSnap.id, ...docSnap.data() });
     }
 
