@@ -21,8 +21,11 @@ function Router() {
       
       {/* Role Protected Routes (handled by navigation logic inside pages) */}
       <Route path="/superadmin/dashboard" component={SuperAdminDashboard}/>
-      <Route path="/admin/dashboard" component={AdminDashboard}/>
-      <Route path="/guard/dashboard" component={GuardDashboard}/>
+      <Route path="/:collegeSlug/admin" component={AdminDashboard}/>
+      <Route path="/:collegeSlug/admin/dashboard" component={AdminDashboard}/>
+      <Route path="/:collegeSlug/admin/seminars" component={AdminDashboard}/>
+      <Route path="/:collegeSlug/admin/halls" component={AdminDashboard}/>
+      <Route path="/:collegeSlug/guard/dashboard" component={GuardDashboard}/>
       
       {/* Public Student Routes */}
       <Route path="/:slug" component={SeminarDetailsPage}/>

@@ -13,21 +13,27 @@ export const useAuthStore = create()(persist((set) => ({
     name: "ssems-auth",
 }));
 export function useLogin() {
-    const setAuth = useAuthStore((state) => state.setAuth);
-    const [, setLocation] = useLocation();
-    return useMutation({
-        mutationFn: async (credentials) => {
-            // Use LocalDB instead of API fetch
-            return await localDB.login(credentials);
-        },
-        onSuccess: (data) => {
-            setAuth(data.user, data.college);
-            setLocation(data.redirectUrl);
-        },
-        onError: (error) => {
-            console.error("Login failed:", error);
-        }
-    });
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const [, setLocation] = useLocation();
+  return useMutation({
+    mutationFn: async (credentials) => {
+      // Use LocalDB instead of API fetch
+      return await localDB.login(credentials);
+    },
+    onSuccess: (data) => {
+      setAuth(data.user, data.college);
+      const slug = encodeURIComponent(data.college?.name ?? "");
+      const url = data.user?.role === "superadmin"
+        ? "/superadmin/dashboard"
+        : data.user?.role === "guard"
+          ? `/${slug}/guard/dashboard`
+          : `/${slug}/admin/dashboard`;
+      setLocation(url);
+    },
+    onError: (error) => {
+      console.error("Login failed:", error);
+    }
+  });
 }
 export function useLogout() {
     const logout = useAuthStore((state) => state.logout);

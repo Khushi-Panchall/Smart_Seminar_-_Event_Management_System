@@ -8,9 +8,12 @@ export function Navigation() {
     const [location] = useLocation();
     if (!user || !college)
         return null;
-    const dashboardPath = user.role === 'superadmin' ? '/superadmin/dashboard' :
-        user.role === 'admin' ? '/admin/dashboard' :
-            '/guard/dashboard';
+  const slug = encodeURIComponent(college.name || "");
+  const dashboardPath = user.role === 'superadmin' 
+    ? '/superadmin/dashboard' 
+    : user.role === 'admin' 
+      ? `/${slug}/admin/dashboard` 
+      : `/${slug}/guard/dashboard`;
     return (<nav className="border-b bg-white/80 backdrop-blur sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
