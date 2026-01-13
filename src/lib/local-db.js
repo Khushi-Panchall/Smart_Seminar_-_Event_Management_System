@@ -308,6 +308,12 @@ class LocalDB {
         }
 
         const docRef = await addDoc(seminarsRef, newSeminar);
+        // Mirror to legacy/top-level for public reads if security rules restrict collectionGroup
+        try {
+            await setDoc(doc(db, "seminars", docRef.id), newSeminar);
+        } catch (e) {
+            console.error("Failed to mirror seminar to top-level collection", e);
+        }
         return { id: docRef.id, ...newSeminar };
     }
 
