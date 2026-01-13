@@ -12,9 +12,8 @@ export default function SeatSelectionPage() {
     const [match, params] = useRoute("/:slug/seats");
     const slug = params?.slug || "";
     const { data: seminar, isLoading: seminarLoading } = useSeminarBySlug(slug);
-    // We need seminar ID for registrations, but we only have slug initially.
-    // The hook handles fetching by slug. Once we have seminar, we can fetch registrations.
-    const { data: registrations, isLoading: regsLoading } = useRegistrations(seminar?.id || 0);
+    // Once we have seminar, fetch registrations scoped to its college
+    const { data: registrations, isLoading: regsLoading } = useRegistrations(seminar?.collegeId || 0, seminar?.id || 0);
     const { mutate: register, isPending } = useCreateRegistration();
     const { toast } = useToast();
     const [selectedSeat, setSelectedSeat] = useState(null);
@@ -44,6 +43,7 @@ export default function SeatSelectionPage() {
         }
 
         register({
+            collegeId: seminar.collegeId,
             seminarId: seminar.id,
             seatRow: selectedSeat.row,
             seatCol: selectedSeat.col,

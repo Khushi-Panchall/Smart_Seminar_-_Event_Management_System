@@ -59,7 +59,7 @@ export default function GuardDashboard() {
     }, [scanResult.status]);
 
     const handleVerify = (uniqueId, scannerInstance) => {
-        verify(uniqueId, {
+        verify({ uniqueId, collegeId: college?.id }, {
             onSuccess: (data) => {
                 // Stop scanner completely on success to show result
                 if (scannerInstance) {

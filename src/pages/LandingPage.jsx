@@ -42,7 +42,7 @@ export default function LandingPage() {
             🚀 Smart Event Management
           </div>
           <div className="flex justify-center mb-8">
-            <img src="/logo-full.svg" alt="SSEMS - Smart Seminar & Event Management System" className="h-auto max-w-[600px] w-full" />
+            <img src="/logo-full.png" alt="SSEMS - Smart Seminar & Event Management System" className="h-auto max-w-[600px] w-full" />
           </div>
           <p className="text-lg text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
             A Secure, QR-Based Seminar & Event Management Platform for Colleges. Streamline registrations, automate seating, and track attendance in real-time.

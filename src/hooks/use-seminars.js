@@ -9,17 +9,17 @@ export function useSeminars(collegeId) {
         },
     });
 }
-export function useSeminar(id) {
+export function useSeminar(collegeId, id) {
     return useQuery({
-        queryKey: ["seminar", id],
+        queryKey: ["seminar", collegeId, id],
         queryFn: async () => {
             const seminar = await localDB.getSeminar(id);
             if (!seminar)
                 throw new Error("Seminar not found");
-            const registrations = await localDB.getRegistrations(id);
+            const registrations = await localDB.getRegistrations(collegeId, id);
             return { ...seminar, registrations };
         },
-        enabled: !!id,
+        enabled: !!collegeId && !!id,
     });
 }
 export function useSeminarBySlug(slug) {
@@ -29,7 +29,7 @@ export function useSeminarBySlug(slug) {
             const seminar = await localDB.getSeminarBySlug(slug);
             if (!seminar)
                 throw new Error("Seminar not found");
-            const registrations = await localDB.getRegistrations(seminar.id);
+            const registrations = await localDB.getRegistrations(seminar.collegeId, seminar.id);
             return { ...seminar, registrations };
         },
         enabled: !!slug,

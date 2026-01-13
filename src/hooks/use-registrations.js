@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { localDB } from "@/lib/local-db";
-export function useRegistrations(seminarId) {
+export function useRegistrations(collegeId, seminarId) {
     return useQuery({
-        queryKey: ["registrations", seminarId],
-        enabled: !!seminarId,
+        queryKey: ["registrations", collegeId, seminarId],
+        enabled: !!collegeId && !!seminarId,
         queryFn: async () => {
-            return await localDB.getRegistrations(seminarId);
+            return await localDB.getRegistrations(collegeId, seminarId);
         },
     });
 }
@@ -17,7 +17,7 @@ export function useCreateRegistration() {
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey: ["registrations", variables.seminarId]
+                queryKey: ["registrations", variables.collegeId, variables.seminarId]
             });
             queryClient.invalidateQueries({
                 queryKey: ["seminar", variables.seminarId]
@@ -27,8 +27,8 @@ export function useCreateRegistration() {
 }
 export function useVerifyTicket() {
     return useMutation({
-        mutationFn: async (uniqueId) => {
-            return await localDB.verifyAttendance({ uniqueId });
+        mutationFn: async (payload) => {
+            return await localDB.verifyAttendance(payload);
         },
     });
 }

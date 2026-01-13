@@ -1,7 +1,8 @@
 import { db } from "./firebase";
 import { 
   collection, doc, getDocs, getDoc, addDoc, updateDoc, 
-  query, where, orderBy, limit, setDoc, Timestamp 
+  query, where, orderBy, limit, setDoc, Timestamp, 
+  collectionGroup, documentId 
 } from "firebase/firestore";
 
 // Helper to get row letter (1->A, 2->B, etc.)
@@ -116,7 +117,7 @@ class LocalDB {
     // === USERS ===
     async createUser(insertUser) {
         // insertUser: { collegeId, username, password, role }
-        const usersRef = collection(db, "users");
+        const usersRef = collection(db, "colleges", insertUser.collegeId, "users");
         // Check if username exists? (Optional but good)
         // For now, blindly add as per local-db logic
         const newUser = {
@@ -132,7 +133,7 @@ class LocalDB {
     }
 
     async getUsersByCollege(collegeId) {
-        const usersRef = collection(db, "users");
+        const usersRef = collection(db, "colleges", collegeId, "users");
         const q = query(usersRef, where("collegeId", "==", collegeId));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -159,7 +160,7 @@ class LocalDB {
             };
             return { user, college, redirectUrl: "/superadmin/dashboard" };
         }
-        const usersRef = collection(db, "users");
+        const usersRef = collection(db, "colleges", creds.collegeId, "users");
         const q = query(
             usersRef, 
             where("collegeId", "==", creds.collegeId),
@@ -190,7 +191,7 @@ class LocalDB {
 
     // === SEMINARS ===
     async getSeminars(collegeId) {
-        const seminarsRef = collection(db, "seminars");
+        const seminarsRef = collection(db, "colleges", collegeId, "seminars");
         const q = query(seminarsRef, where("collegeId", "==", collegeId));
         const snapshot = await getDocs(q);
         
@@ -206,16 +207,15 @@ class LocalDB {
 
     async getSeminar(id) {
         if (!id) return null;
-        const docRef = doc(db, "seminars", id);
-        const docSnap = await getDoc(docRef);
-        if (!docSnap.exists()) return null;
-
+        const q = query(collectionGroup(db, "seminars"), where(documentId(), "==", id), limit(1));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null;
+        const docSnap = snapshot.docs[0];
         return this._resolveSeminarLayout({ id: docSnap.id, ...docSnap.data() });
     }
 
     async getSeminarBySlug(slug) {
-        const seminarsRef = collection(db, "seminars");
-        const q = query(seminarsRef, where("slug", "==", slug), limit(1));
+        const q = query(collectionGroup(db, "seminars"), where("slug", "==", slug), limit(1));
         const snapshot = await getDocs(q);
         
         if (snapshot.empty) return null;
@@ -229,7 +229,7 @@ class LocalDB {
         if (seminar.hallId) {
             // Fetch Hall
             try {
-                const hallRef = doc(db, "halls", seminar.hallId);
+                const hallRef = doc(db, "colleges", seminar.collegeId, "halls", seminar.hallId);
                 const hallSnap = await getDoc(hallRef);
                 
                 if (hallSnap.exists()) {
@@ -274,7 +274,7 @@ class LocalDB {
 
     async createSeminar(insertSeminar) {
         // insertSeminar: { collegeId, title, ..., rowConfig, hallId, ... }
-        const seminarsRef = collection(db, "seminars");
+        const seminarsRef = collection(db, "colleges", insertSeminar.collegeId, "seminars");
         
         const newSeminar = {
             collegeId: insertSeminar.collegeId,
@@ -319,7 +319,7 @@ class LocalDB {
 
     // === HALLS ===
     async getHalls(collegeId) {
-        const hallsRef = collection(db, "halls");
+        const hallsRef = collection(db, "colleges", collegeId, "halls");
         const q = query(hallsRef, where("collegeId", "==", collegeId));
         const snapshot = await getDocs(q);
         
@@ -338,7 +338,7 @@ class LocalDB {
 
     async createHall(insertHall) {
         // insertHall: { collegeId, hallName, rows: { "A": 10, ... }, totalSeats }
-        const hallsRef = collection(db, "halls");
+        const hallsRef = collection(db, "colleges", insertHall.collegeId, "halls");
         
         // Convert App Rows { "A": 10 } to Firestore Rows [{rowLabel: 'A', seats: 10}]
         const firestoreRows = Object.entries(insertHall.rows || {}).map(([label, seats]) => ({
@@ -370,7 +370,7 @@ class LocalDB {
     // === REGISTRATIONS ===
     async createRegistration(input) {
         // input: { seminarId, seatRow, seatCol, studentName, ... }
-        const regsRef = collection(db, "registrations");
+        const regsRef = collection(db, "colleges", input.collegeId, "registrations");
         
         // Generate seatId "A-5"
         const rowLabel = getRowLabel(input.seatRow);
@@ -392,6 +392,7 @@ class LocalDB {
         const uniqueId = Math.random().toString(36).substring(2, 10).toUpperCase();
         
         const newReg = {
+            collegeId: input.collegeId,
             seminarId: input.seminarId,
             seatId: seatId,
             studentName: input.studentName,
@@ -417,8 +418,8 @@ class LocalDB {
         };
     }
 
-    async getRegistrations(seminarId) {
-        const regsRef = collection(db, "registrations");
+    async getRegistrations(collegeId, seminarId) {
+        const regsRef = collection(db, "colleges", collegeId, "registrations");
         const q = query(regsRef, where("seminarId", "==", seminarId));
         const snapshot = await getDocs(q);
         
@@ -447,9 +448,15 @@ class LocalDB {
 
     async verifyAttendance(req) {
         // req: { uniqueId }
-        const regsRef = collection(db, "registrations");
-        const q = query(regsRef, where("qrCodeData", "==", req.uniqueId), limit(1));
-        const snapshot = await getDocs(q);
+        let snapshot;
+        if (req.collegeId) {
+            const regsRef = collection(db, "colleges", req.collegeId, "registrations");
+            const q = query(regsRef, where("qrCodeData", "==", req.uniqueId), limit(1));
+            snapshot = await getDocs(q);
+        } else {
+            const q = query(collectionGroup(db, "registrations"), where("qrCodeData", "==", req.uniqueId), limit(1));
+            snapshot = await getDocs(q);
+        }
 
         if (snapshot.empty) {
              return { valid: false, message: "Invalid Ticket ID" };
@@ -463,7 +470,7 @@ class LocalDB {
         }
 
         // Mark as attended
-        await updateDoc(doc(db, "registrations", docSnap.id), {
+        await updateDoc(docSnap.ref, {
             attended: true
         });
 
