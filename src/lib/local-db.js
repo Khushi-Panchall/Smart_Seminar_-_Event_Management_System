@@ -471,7 +471,7 @@ class LocalDB {
         }
 
         const uniqueId = Math.random().toString(36).substring(2, 10).toUpperCase();
-        
+
         const newReg = {
             collegeId: input.collegeId,
             seminarId: input.seminarId,
@@ -483,7 +483,7 @@ class LocalDB {
             course: input.course || "",
             semester: input.semester || "",
             attended: false,
-            qrCodeData: uniqueId, // Using uniqueId as QR data
+            qrCodeData: uniqueId,
             createdAt: new Date().toISOString()
         };
 
@@ -492,7 +492,7 @@ class LocalDB {
         // Return in App format (including seatRow/Col)
         return { 
             id: docRef.id, 
-            uniqueId, 
+            uniqueId,
             ...newReg,
             seatRow: input.seatRow,
             seatCol: input.seatCol
@@ -569,32 +569,33 @@ class LocalDB {
             throw new Error("College context is required");
         }
 
-        let docSnap;
+        let docSnap = null;
 
         if (req.seminarId) {
             const regsRef = collection(db, "colleges", req.collegeId, "seminars", req.seminarId, "registrations");
             const q = query(regsRef, where("qrCodeData", "==", req.uniqueId), limit(1));
             const snapshot = await getDocs(q);
 
-            if (snapshot.empty) {
-                return { valid: false, message: "Invalid Ticket ID" };
+            if (!snapshot.empty) {
+                docSnap = snapshot.docs[0];
             }
-
-            docSnap = snapshot.docs[0];
         } else {
-            const q = query(collectionGroup(db, "registrations"), where("qrCodeData", "==", req.uniqueId), limit(5));
-            const snapshot = await getDocs(q);
+            const seminars = await this.getSeminars(req.collegeId);
 
-            if (snapshot.empty) {
-                return { valid: false, message: "Invalid Ticket ID" };
+            for (const seminar of seminars) {
+                const regsRef = collection(db, "colleges", req.collegeId, "seminars", seminar.id, "registrations");
+                const q = query(regsRef, where("qrCodeData", "==", req.uniqueId), limit(1));
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    docSnap = snapshot.docs[0];
+                    break;
+                }
             }
+        }
 
-            const filtered = snapshot.docs.filter(d => d.data().collegeId === req.collegeId);
-            if (filtered.length === 0) {
-                return { valid: false, message: "Invalid Ticket ID" };
-            }
-
-            docSnap = filtered[0];
+        if (!docSnap) {
+            return { valid: false, message: "Invalid Ticket ID" };
         }
 
         const data = docSnap.data();
