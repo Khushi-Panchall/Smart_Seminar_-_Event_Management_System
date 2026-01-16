@@ -530,50 +530,78 @@ class LocalDB {
         });
     }
 
+    async updateRegistrationAttendance(req) {
+        const { collegeId, seminarId, registrationId, attended } = req;
+        if (!collegeId || !seminarId || !registrationId) {
+            throw new Error("Missing registration context");
+        }
+
+        const regRef = doc(db, "colleges", collegeId, "seminars", seminarId, "registrations", registrationId);
+        await updateDoc(regRef, { attended });
+
+        const snap = await getDoc(regRef);
+        if (!snap.exists()) {
+            return null;
+        }
+
+        const data = snap.data();
+        let seatRow = 0;
+        let seatCol = 0;
+        if (data.seatId) {
+            const parts = data.seatId.split("-");
+            if (parts.length === 2) {
+                seatRow = getRowIndex(parts[0]);
+                seatCol = parseInt(parts[1]);
+            }
+        }
+
+        return {
+            id: snap.id,
+            uniqueId: data.qrCodeData,
+            ...data,
+            seatRow,
+            seatCol
+        };
+    }
+
     async verifyAttendance(req) {
-        // req: { uniqueId, collegeSlug (optional), seminarId (optional) }
-        // We really need collegeSlug or ID to find the registration now.
-        // If not provided, we can't efficiently find it without collectionGroup, 
-        // which might violate strict isolation rules if not indexed.
-        // But for scanner app, we might need collectionGroup on 'registrations'.
-        
-        // Master Prompt: "Never query outside colleges/{collegeSlug}"
-        // This implies the scanner MUST know the college.
-        
-        let snapshot;
-        
-        if (req.collegeId && req.seminarId) {
-             const regsRef = collection(db, "colleges", req.collegeId, "seminars", req.seminarId, "registrations");
-             const q = query(regsRef, where("qrCodeData", "==", req.uniqueId), limit(1));
-             snapshot = await getDocs(q);
-        } else if (req.collegeId) {
-            // Fallback: search all seminars in college? Expensive.
-            // Better to use collectionGroup restricted to college path if possible? 
-            // Firestore doesn't support "collectionGroup under specific document" easily without queries.
-            // We'll assume scanner provides context.
-            // For now, fail if no seminarId? 
-            // Or try collectionGroup globally if indexes exist?
-             const q = query(collectionGroup(db, "registrations"), where("qrCodeData", "==", req.uniqueId), limit(1));
-             snapshot = await getDocs(q);
+        if (!req.collegeId) {
+            throw new Error("College context is required");
+        }
+
+        let docSnap;
+
+        if (req.seminarId) {
+            const regsRef = collection(db, "colleges", req.collegeId, "seminars", req.seminarId, "registrations");
+            const q = query(regsRef, where("qrCodeData", "==", req.uniqueId), limit(1));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                return { valid: false, message: "Invalid Ticket ID" };
+            }
+
+            docSnap = snapshot.docs[0];
         } else {
-            const q = query(collectionGroup(db, "registrations"), where("qrCodeData", "==", req.uniqueId), limit(1));
-            snapshot = await getDocs(q);
+            const q = query(collectionGroup(db, "registrations"), where("qrCodeData", "==", req.uniqueId), limit(5));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                return { valid: false, message: "Invalid Ticket ID" };
+            }
+
+            const filtered = snapshot.docs.filter(d => d.data().collegeId === req.collegeId);
+            if (filtered.length === 0) {
+                return { valid: false, message: "Invalid Ticket ID" };
+            }
+
+            docSnap = filtered[0];
         }
 
-        if (snapshot.empty) {
-             return { valid: false, message: "Invalid Ticket ID" };
-        }
-
-        const docSnap = snapshot.docs[0];
         const data = docSnap.data();
-
-        // Check if data.collegeSlug matches req.collegeSlug if provided? (Security)
-
         if (data.attended) {
             return { valid: false, message: "Ticket Already Used", registration: data };
         }
 
-        // Mark as attended
         await updateDoc(docSnap.ref, {
             attended: true
         });

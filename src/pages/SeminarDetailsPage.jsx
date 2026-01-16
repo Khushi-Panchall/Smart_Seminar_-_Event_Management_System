@@ -98,7 +98,7 @@ export default function SeminarDetailsPage() {
                   </a>
                 </div>
                 <Button className="w-full" asChild>
-                  <a href={`/${seminar.slug}/register`}>Register Here</a>
+                  <a href={`/${collegeSlug}/${seminarSlug}/register`}>Register Here</a>
                 </Button>
               </CardContent>
             </Card>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuthStore } from "@/hooks/use-auth";
-import { useSeminars, useCreateSeminar } from "@/hooks/use-seminars";
+import { useSeminars, useCreateSeminar, useSeminarByCollegeAndSlug } from "@/hooks/use-seminars";
 import { useHalls } from "@/hooks/use-halls";
 import { CreateHallModal } from "@/components/CreateHallModal";
 import { Navigation } from "@/components/Navigation";
@@ -14,9 +14,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Calendar, MapPin, Users, QrCode, X } from "lucide-react";
+import { Loader2, Plus, Calendar, MapPin, Users, QrCode, X, CheckCircle, XCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { useRoute, useLocation } from "wouter";
+import { useRegistrations, useToggleAttendance } from "@/hooks/use-registrations";
 export default function AdminDashboard() {
+    const [matchSeminarView, paramsSeminarView] = useRoute("/:collegeSlug/admin/seminars/:seminarSlug");
+    const [, setLocation] = useLocation();
     const { user, college } = useAuthStore();
     const { data: seminars, isLoading } = useSeminars(college?.id ?? 0);
     const { data: halls } = useHalls(college?.id ?? 0);
@@ -147,10 +153,144 @@ export default function AdminDashboard() {
             }
         });
     };
-    const getPublicLink = (slug) => `${window.location.origin}/${slug}/register`;
-    const getViewLink = (slug) => `${window.location.origin}/${slug}`;
+    const currentCollegeSlug = (() => {
+        const path = window.location.pathname.split("/").filter(Boolean);
+        if (path.length > 0) return path[0];
+        if (college?.slug) return college.slug;
+        if (college?.name) return encodeURIComponent(college.name);
+        return "";
+    })();
+    const getPublicLink = (slug) => `${window.location.origin}/${currentCollegeSlug}/${slug}/register`;
+    const getViewLink = (slug) => `${window.location.origin}/${currentCollegeSlug}/${slug}`;
     if (!user || !college)
         return <div>Access Denied</div>;
+
+    if (matchSeminarView && paramsSeminarView) {
+        const collegeSlug = paramsSeminarView.collegeSlug;
+        const seminarSlug = paramsSeminarView.seminarSlug;
+        const { data: seminar, isLoading: seminarLoading } = useSeminarByCollegeAndSlug(collegeSlug, seminarSlug);
+        const { data: registrations, isLoading: regsLoading } = useRegistrations(seminar?.collegeId || 0, seminar?.id || 0);
+        const { mutate: toggleAttendance, isPending: togglePending } = useToggleAttendance();
+
+        if (seminarLoading || regsLoading) {
+            return (<div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin"/>
+        </div>);
+        }
+        if (!seminar) {
+            return <div className="min-h-screen flex items-center justify-center">Seminar not found</div>;
+        }
+
+        const handleToggle = (reg) => {
+            toggleAttendance({
+                collegeId: seminar.collegeId,
+                seminarId: seminar.id,
+                registrationId: reg.id,
+                attended: !reg.attended
+            });
+        };
+
+        return (<div className="min-h-screen bg-slate-50">
+      <Navigation />
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-display font-bold">{seminar.title}</h1>
+            <p className="text-muted-foreground">Registrations and attendance</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setLocation(`/${collegeSlug}/admin/seminars`)}>
+              Back to Seminars
+            </Button>
+            <Button asChild>
+              <a href={getViewLink(seminar.slug)} target="_blank" rel="noreferrer">
+                Open Public Page
+              </a>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle>Event Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4"/>
+                <span>{new Date(seminar.date).toLocaleDateString()} at {seminar.time}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4"/>
+                <span>{seminar.venue}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4"/>
+                <span>{seminar.totalSeats || (seminar.rows * seminar.cols)} Seats Capacity</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Registrations</CardTitle>
+              <CardDescription>All attendees for this seminar</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Full Name</TableHead>
+                      <TableHead>College Name</TableHead>
+                      <TableHead>Course</TableHead>
+                      <TableHead>Semester</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Ticket ID</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {registrations && registrations.length > 0 ? registrations.map((reg, idx) => (<TableRow key={reg.id}>
+                          <TableCell>{idx + 1}</TableCell>
+                          <TableCell>{reg.studentName}</TableCell>
+                          <TableCell>{reg.collegeName}</TableCell>
+                          <TableCell>{reg.course}</TableCell>
+                          <TableCell>{reg.semester}</TableCell>
+                          <TableCell>{reg.email}</TableCell>
+                          <TableCell>{reg.phone}</TableCell>
+                          <TableCell>{reg.uniqueId}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {reg.attended ? <CheckCircle className="w-4 h-4 text-emerald-500"/> : <XCircle className="w-4 h-4 text-slate-400"/>}
+                              <Badge variant={reg.attended ? "default" : "outline"} className={reg.attended ? "bg-emerald-100 text-emerald-700 border-emerald-200" : ""}>
+                                {reg.attended ? "Present" : "Not Marked"}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="outline" disabled={togglePending} onClick={() => handleToggle(reg)}>
+                              {reg.attended ? "Mark Absent" : "Mark Attended"}
+                            </Button>
+                          </TableCell>
+                        </TableRow>)) : (<TableRow>
+                        <TableCell colSpan={10} className="text-center text-muted-foreground">
+                          No registrations yet.
+                        </TableCell>
+                      </TableRow>)}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>);
+    }
+
     return (<div className="min-h-screen bg-slate-50">
       <Navigation />
       

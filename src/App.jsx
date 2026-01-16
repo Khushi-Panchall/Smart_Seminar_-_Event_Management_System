@@ -24,6 +24,7 @@ function Router() {
       <Route path="/:collegeSlug/admin" component={AdminDashboard}/>
       <Route path="/:collegeSlug/admin/dashboard" component={AdminDashboard}/>
       <Route path="/:collegeSlug/admin/seminars" component={AdminDashboard}/>
+      <Route path="/:collegeSlug/admin/seminars/:seminarSlug" component={AdminDashboard}/>
       <Route path="/:collegeSlug/admin/halls" component={AdminDashboard}/>
       <Route path="/:collegeSlug/guard/dashboard" component={GuardDashboard}/>
       

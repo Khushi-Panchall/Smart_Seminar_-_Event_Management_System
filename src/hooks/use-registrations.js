@@ -20,7 +20,7 @@ export function useCreateRegistration() {
                 queryKey: ["registrations", variables.collegeId, variables.seminarId]
             });
             queryClient.invalidateQueries({
-                queryKey: ["seminar", variables.seminarId]
+                queryKey: ["seminar", variables.collegeId, variables.seminarId]
             });
         },
     });
@@ -29,6 +29,23 @@ export function useVerifyTicket() {
     return useMutation({
         mutationFn: async (payload) => {
             return await localDB.verifyAttendance(payload);
+        },
+    });
+}
+
+export function useToggleAttendance() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (payload) => {
+            return await localDB.updateRegistrationAttendance(payload);
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ["registrations", variables.collegeId, variables.seminarId]
+            });
+            queryClient.invalidateQueries({
+                queryKey: ["seminar", variables.collegeId, variables.seminarId]
+            });
         },
     });
 }
