@@ -110,20 +110,27 @@ export function CreateHallModal({ isOpen, onClose, collegeId }) {
                             <div className="flex items-center gap-2">
                                 <Input 
                                     type="number" 
-                                    min={1} 
+                                    min={0} 
                                     max={26} 
                                     value={totalRows} 
                                     onChange={(e) => {
-                                        const val = parseInt(e.target.value) || 0;
-                                        setTotalRows(Math.min(26, Math.max(1, val)));
-                                        // Remove configs for rows that no longer exist
+                                        const valStr = e.target.value;
+                                        if (valStr === "") {
+                                            setTotalRows(0);
+                                            setRowConfigs([]);
+                                            return;
+                                        }
+                                        const val = parseInt(valStr);
+                                        if (isNaN(val)) return;
+                                        const clamped = Math.min(26, Math.max(0, val));
+                                        setTotalRows(clamped);
                                         setRowConfigs(prev => prev.filter(c => 
-                                            c.label.charCodeAt(0) - 65 < val
+                                            c.label.charCodeAt(0) - 65 < clamped
                                         ));
                                     }} 
                                 />
                                 <span className="text-sm text-muted-foreground whitespace-nowrap">
-                                    (A - {String.fromCharCode(64 + totalRows)})
+                                    (A - {String.fromCharCode(64 + Math.max(1, totalRows || 1))})
                                 </span>
                             </div>
                         </div>

@@ -40,6 +40,8 @@ export function useSeminarByCollegeAndSlug(collegeSlug, slug) {
             }
         },
         enabled: !!collegeSlug && !!slug,
+        refetchInterval: 5000,
+        refetchOnWindowFocus: true,
     });
 }
 
