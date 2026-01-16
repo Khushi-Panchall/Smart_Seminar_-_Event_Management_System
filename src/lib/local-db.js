@@ -477,13 +477,16 @@ class LocalDB {
             seminarId: input.seminarId,
             seatId: seatId,
             studentName: input.studentName,
+            name: input.studentName,
             email: input.email,
             phone: input.phone,
             collegeName: input.collegeName || "",
+            college: input.collegeName || "",
             course: input.course || "",
             semester: input.semester || "",
             attended: false,
             qrCodeData: uniqueId,
+            ticketId: uniqueId,
             createdAt: new Date().toISOString()
         };
 

@@ -237,52 +237,61 @@ export default function AdminDashboard() {
               <CardDescription>All attendees for this seminar</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>#</TableHead>
-                      <TableHead>Full Name</TableHead>
-                      <TableHead>College Name</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Semester</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Ticket ID</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {registrations && registrations.length > 0 ? registrations.map((reg, idx) => (<TableRow key={reg.id}>
-                          <TableCell>{idx + 1}</TableCell>
-                          <TableCell>{reg.studentName}</TableCell>
-                          <TableCell>{reg.collegeName}</TableCell>
-                          <TableCell>{reg.course}</TableCell>
-                          <TableCell>{reg.semester}</TableCell>
-                          <TableCell>{reg.email}</TableCell>
-                          <TableCell>{reg.phone}</TableCell>
-                          <TableCell>{reg.uniqueId}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              {reg.attended ? <CheckCircle className="w-4 h-4 text-emerald-500"/> : <XCircle className="w-4 h-4 text-slate-400"/>}
-                              <Badge variant={reg.attended ? "default" : "outline"} className={reg.attended ? "bg-emerald-100 text-emerald-700 border-emerald-200" : ""}>
-                                {reg.attended ? "Present" : "Not Marked"}
-                              </Badge>
-                            </div>
+              <div className="border rounded-lg overflow-hidden">
+                <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-slate-50 z-10">
+                      <TableRow>
+                        <TableHead>#</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>College</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Semester</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Ticket ID</TableHead>
+                        <TableHead>Attendance</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {registrations && registrations.length > 0 ? registrations.map((reg, idx) => {
+                        const displayName = reg.name || reg.studentName;
+                        const displayCollege = reg.college || reg.collegeName;
+                        const displayTicketId = reg.ticketId || reg.uniqueId;
+                        return (
+                          <TableRow key={reg.id}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell>{displayName}</TableCell>
+                            <TableCell>{displayCollege}</TableCell>
+                            <TableCell>{reg.course}</TableCell>
+                            <TableCell>{reg.semester}</TableCell>
+                            <TableCell>{reg.email}</TableCell>
+                            <TableCell>{reg.phone}</TableCell>
+                            <TableCell>{displayTicketId}</TableCell>
+                            <TableCell>
+                              <button
+                                type="button"
+                                disabled={togglePending}
+                                onClick={() => handleToggle(reg)}
+                                className="flex items-center justify-center w-8 h-8 rounded-full border bg-white hover:bg-slate-50 disabled:opacity-50"
+                              >
+                                <span className={reg.attended ? "text-emerald-600 text-lg" : "text-red-500 text-lg"}>
+                                  {reg.attended ? "✔" : "❌"}
+                                </span>
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }) : (
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center text-muted-foreground">
+                            No registrations yet
                           </TableCell>
-                          <TableCell>
-                            <Button size="sm" variant="outline" disabled={togglePending} onClick={() => handleToggle(reg)}>
-                              {reg.attended ? "Mark Absent" : "Mark Attended"}
-                            </Button>
-                          </TableCell>
-                        </TableRow>)) : (<TableRow>
-                        <TableCell colSpan={10} className="text-center text-muted-foreground">
-                          No registrations yet.
-                        </TableCell>
-                      </TableRow>)}
-                  </TableBody>
-                </Table>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </CardContent>
           </Card>
