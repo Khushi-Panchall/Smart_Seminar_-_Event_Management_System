@@ -31,8 +31,8 @@ export default function StudentRegisterPage() {
         // In a real app, you might save this to local storage or a "draft" API endpoint.
         // For now, we'll pass it via state/query params or just expect the user to re-enter
         // (since the prompt says "Temporarily store student data", we'll use localStorage)
-        localStorage.setItem(`registration_${slug}`, JSON.stringify(formData));
-        setLocation(`/${slug}/seats`);
+        localStorage.setItem(`registration_${collegeSlug}_${seminarSlug}`, JSON.stringify(formData));
+        setLocation(`/${collegeSlug}/${seminarSlug}/seats`);
     };
     if (isLoading) {
         return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin"/></div>;

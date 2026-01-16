@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useRoute } from "wouter";
-import { useSeminarBySlug } from "@/hooks/use-seminars";
+import { useRoute, useLocation } from "wouter";
+import { useSeminarByCollegeAndSlug } from "@/hooks/use-seminars";
 import { useRegistrations, useCreateRegistration } from "@/hooks/use-registrations";
 import { SeatingGrid, getRowLabel } from "@/components/SeatingGrid";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
 
 export default function SeatSelectionPage() {
-    const [match, params] = useRoute("/:slug/seats");
-    const slug = params?.slug || "";
-    const { data: seminar, isLoading: seminarLoading } = useSeminarBySlug(slug);
+    const [match, params] = useRoute("/:collegeSlug/:seminarSlug/seats");
+    const collegeSlug = params?.collegeSlug || "";
+    const seminarSlug = params?.seminarSlug || "";
+    const { data: seminar, isLoading: seminarLoading } = useSeminarByCollegeAndSlug(collegeSlug, seminarSlug);
     // Once we have seminar, fetch registrations scoped to its college
     const { data: registrations, isLoading: regsLoading } = useRegistrations(seminar?.collegeId || 0, seminar?.id || 0);
     const { mutate: register, isPending } = useCreateRegistration();
@@ -20,17 +21,17 @@ export default function SeatSelectionPage() {
     const [ticketData, setTicketData] = useState(null);
     const [step, setStep] = useState("seat");
     const [studentData, setStudentData] = useState(null);
+    const [, setLocation] = useLocation();
 
     useEffect(() => {
-        const savedData = localStorage.getItem(`registration_${slug}`);
+        const savedData = localStorage.getItem(`registration_${collegeSlug}_${seminarSlug}`);
         if (savedData) {
             setStudentData(JSON.parse(savedData));
         }
         else {
-            // Redirect back if no data? Or allow empty?
-            // For now, let's assume they might need to go back.
+            setLocation(`/${collegeSlug}/${seminarSlug}/register`);
         }
-    }, [slug]);
+    }, [collegeSlug, seminarSlug, setLocation]);
 
     const handleSeatSelect = (row, col) => {
         setSelectedSeat({ row, col });
@@ -119,7 +120,7 @@ export default function SeatSelectionPage() {
     if (!studentData && step !== "success") {
         return (<div className="min-h-screen flex items-center justify-center flex-col gap-4">
               <p>No registration data found. Please start from the beginning.</p>
-              <Button asChild><a href={`/${slug}/register`}>Go to Registration</a></Button>
+              <Button asChild><a href={`/${collegeSlug}/${seminarSlug}/register`}>Go to Registration</a></Button>
           </div>);
     }
 
@@ -151,7 +152,7 @@ export default function SeatSelectionPage() {
             </CardContent>
             <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-4 sm:gap-0">
                 <Button variant="ghost" asChild className="w-full sm:w-auto">
-                    <a href={`/${slug}/register`}><ArrowLeft className="w-4 h-4 mr-2"/> Back to Details</a>
+                    <a href={`/${collegeSlug}/${seminarSlug}/register`}><ArrowLeft className="w-4 h-4 mr-2"/> Back to Details</a>
                 </Button>
                 <Button onClick={handleRegister} disabled={!selectedSeat || isPending} className="w-full sm:w-auto">
                   {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : "Register & Book"}
