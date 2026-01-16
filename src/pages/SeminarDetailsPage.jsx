@@ -1,15 +1,18 @@
 import { useRoute } from "wouter";
 import { useSeminarByCollegeAndSlug } from "@/hooks/use-seminars";
+import { useAuthStore } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, MapPin, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function SeminarDetailsPage() {
     const [match, params] = useRoute("/:collegeSlug/:seminarSlug");
     const collegeSlug = params?.collegeSlug || "";
     const seminarSlug = params?.seminarSlug || "";
     const { data: seminar, isLoading } = useSeminarByCollegeAndSlug(collegeSlug, seminarSlug);
+    const { user, college } = useAuthStore();
 
     if (isLoading) {
         return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin"/></div>;
@@ -18,6 +21,8 @@ export default function SeminarDetailsPage() {
         return <div className="min-h-screen flex items-center justify-center">Seminar not found</div>;
 
     const registerUrl = `${window.location.origin}/${collegeSlug}/${seminarSlug}/register`;
+    const registrations = seminar.registrations || [];
+    const canViewRegistrations = user && college && user.role === "admin" && college.id === seminar.collegeId;
     
     return (<div className="min-h-screen bg-slate-50 py-12 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -104,6 +109,57 @@ export default function SeminarDetailsPage() {
             </Card>
           </div>
         </div>
+        {canViewRegistrations && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Registrations</CardTitle>
+              <CardDescription>
+                {registrations.length} registration{registrations.length === 1 ? "" : "s"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {registrations.length > 0 ? (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-slate-50 z-10">
+                        <TableRow>
+                          <TableHead>#</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Seat</TableHead>
+                          <TableHead>Attendance</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {registrations.map((reg, idx) => {
+                          const displayName = reg.name || reg.studentName;
+                          const seatLabel = reg.seatId
+                            || (reg.seatRow && reg.seatCol
+                              ? `${String.fromCharCode(64 + reg.seatRow)}-${reg.seatCol}`
+                              : "-");
+                          return (
+                            <TableRow key={reg.id}>
+                              <TableCell>{idx + 1}</TableCell>
+                              <TableCell>{displayName}</TableCell>
+                              <TableCell>{reg.email}</TableCell>
+                              <TableCell>{reg.phone}</TableCell>
+                              <TableCell>{seatLabel}</TableCell>
+                              <TableCell>{reg.attended ? "Yes" : "No"}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No registrations yet.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>);
 }
