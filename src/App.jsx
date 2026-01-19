@@ -39,6 +39,8 @@ function Router() {
 function App() {
     return (<QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <PWARegister />
+        <InstallBanner />
         <Toaster />
         <Router />
       </TooltipProvider>
