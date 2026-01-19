@@ -13,9 +13,14 @@ import GuardDashboard from "@/pages/GuardDashboard";
 import SeminarDetailsPage from "@/pages/SeminarDetailsPage";
 import StudentRegisterPage from "@/pages/StudentRegisterPage";
 import SeatSelectionPage from "@/pages/SeatSelectionPage";
+import OfflinePage from "@/pages/OfflinePage";
+import { PWARegister } from "@/components/PWARegister";
+import { InstallBanner } from "@/components/InstallBanner";
+
 function Router() {
     return (<Switch>
       <Route path="/" component={LandingPage}/>
+      <Route path="/offline" component={OfflinePage}/>
       <Route path="/login" component={LoginPage}/>
       <Route path="/register" component={RegisterCollege}/>
       
