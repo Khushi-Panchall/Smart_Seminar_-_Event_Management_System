@@ -36,13 +36,17 @@ function Router() {
       <Route component={NotFound}/>
     </Switch>);
 }
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
 function App() {
     return (<QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <PWARegister />
-        <InstallBanner />
-        <Toaster />
-        <Router />
+        <ErrorBoundary>
+          <PWARegister />
+          <InstallBanner />
+          <Toaster />
+          <Router />
+        </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>);
 }
